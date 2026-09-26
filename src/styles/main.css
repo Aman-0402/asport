@@ -1,0 +1,11 @@
+/* Single stylesheet entry, linked from partials/head.html so it is render-blocking
+   in dev and build alike (no flash of unstyled content between pages). */
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/manrope';
+@import './tokens.css';
+@import './base.css';
+@import './layout.css';
+@import './components.css';
+@import './pages/home.css';
+@import './pages/inner.css';
+@import './transitions.css';

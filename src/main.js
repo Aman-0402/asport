@@ -1,13 +1,3 @@
-import '@fontsource-variable/bricolage-grotesque';
-import '@fontsource-variable/manrope';
-import './styles/tokens.css';
-import './styles/base.css';
-import './styles/layout.css';
-import './styles/components.css';
-import './styles/pages/home.css';
-import './styles/pages/inner.css';
-import './styles/transitions.css';
-
 import { env } from './core/env.js';
 import { initTheme } from './core/theme.js';
 import { initNav } from './core/nav.js';
