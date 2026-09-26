@@ -12,8 +12,8 @@
  *   |  197-227  |  180-192  |  167-178  |
  *   +-----------+-----------+-----------+
  *
- * Entering a cell plays the footage into that cell's pose and holds still on
- * it (`POSE`). Moving to another cell always goes via CENTRE: back to the
+ * Entering a cell plays the footage into that cell's pose (`POSE`); while
+ * the pointer rests, she rewinds a few frames and replays them (`IDLE`). Moving to another cell always goes via CENTRE: back to the
  * centre pose, then out to the new pose, playing every frame in between
  * (backwards when returning), so the motion is always continuous.
  *
@@ -102,6 +102,15 @@ const BREAKPOINTS = { mobile: 767, tablet: 1199 };
  * - accel: how quickly speed approaches that desired speed (eases starts).
  */
 const MOTION = { travelMax: 1.6, travelMin: 0.35, smoothing: 0.12, accel: 0.3 };
+
+/**
+ * Idle breathing once the pointer rests: the footage rewinds a few frames from
+ * the pose and plays back to it, over and over, so she never freezes.
+ * - frames: how far it rewinds (clipped to the zone's own frames).
+ * - cycle: seconds for one rewind and replay.
+ * - delay: seconds of stillness before it starts.
+ */
+const IDLE = { frames: 6, cycle: 2.4, delay: 0.4 };
 
 /** Face position inside the frame (fractions of width/height): crop anchor on portrait screens. */
 const FACE_ORIGIN = { x: 0.69, y: 0.33 };
@@ -303,6 +312,9 @@ export function mountInteractiveCharacter(
     speed: 0,
     direction: 1,
     drawnFrame: -1,
+    idleOffset: 0, // frames rewound from the pose while idling
+    idlePhase: 0,
+    idleWait: 0,
   };
   let rect = { x: 0, y: 0, w: 0, h: 0 };
   const frames = [];
@@ -312,7 +324,7 @@ export function mountInteractiveCharacter(
   let tracking = reducedMotion ? TRACKING.mobile : TRACKING[deviceClass()];
   const animated = () => tracking.enabled && !reducedMotion;
 
-  const shownFrame = () => displayFrame(refs.currentFrame, refs.direction);
+  const shownFrame = () => displayFrame(refs.currentFrame - refs.idleOffset, refs.direction);
 
   /* ---- canvas sizing (devicePixelRatio aware) ---- */
   const resize = () => {
@@ -405,11 +417,26 @@ export function mountInteractiveCharacter(
       }
     }
 
+    // Idle rewind: only while resting on a pose; eases away as soon as she moves.
+    const resting = animated() && !moving && refs.leg === refs.target;
+    if (resting && (refs.idleWait += 1 / 60) >= IDLE.delay) {
+      const [lo] = ZONES[refs.leg];
+      const reach = Math.min(IDLE.frames, POSE[refs.leg] - lo);
+      refs.idlePhase += (Math.PI * 2) / (IDLE.cycle * 60);
+      refs.idleOffset = reach * (0.5 - 0.5 * Math.cos(refs.idlePhase));
+      refs.direction = Math.sin(refs.idlePhase) > 0 ? -1 : 1;
+    } else if (!resting) {
+      refs.idleWait = 0;
+      refs.idlePhase = 0;
+      refs.idleOffset *= 0.8;
+      if (refs.idleOffset < 0.05) refs.idleOffset = 0;
+    }
+
     const n = shownFrame();
     if (n !== refs.drawnFrame && drawFrame(ctx, frames, n, rect)) refs.drawnFrame = n;
 
-    // Stops once holding a pose: a settled character costs nothing.
-    const settled = !moving && refs.drawnFrame === n && refs.leg === refs.target;
+    // Phones and reduced motion stop on the resting frame and cost nothing.
+    const settled = !animated() && !moving && refs.drawnFrame === n;
     if (inView && !settled) rafId = requestAnimationFrame(animate);
   }
   function start() {

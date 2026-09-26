@@ -1,8 +1,9 @@
-import { createAmbient } from './ambient.js';
+import { createAmbient, DEFAULT_PATH, DEFAULT_MOBILE_PATH } from './ambient.js';
 
+/** About: the butterfly flies a zig-zag path as the page scrolls. */
 export function create(ctx) {
   return createAmbient(ctx, {
-    blobs: [{ position: [3.2, 1.4, -1.5], mobilePosition: [1.6, 3.4, -5.5], radius: 1.1, amp: 0.2 }],
+    butterflies: [{ path: DEFAULT_PATH, mobilePath: DEFAULT_MOBILE_PATH, radius: 0.8, amp: 0.2 }],
     camera: { from: [0, 0, 7], to: [0, -3, 6] },
   });
 }

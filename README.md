@@ -6,12 +6,12 @@ A six-page portfolio for Astha Shukla, BBA Marketing student at Allenhouse Busin
 
 | Page | What happens |
 | --- | --- |
-| `index.html` | Noise-shaped 3D blob that moves between sections as you scroll and changes shape for each focus area. Also: a statement whose words light up as you scroll, and a tools marquee that speeds up with scroll speed |
+| `index.html` | 3D butterfly that flies between sections as you scroll and changes its wing beat for each focus area. Also: a statement whose words light up as you scroll, and a tools marquee that speeds up with scroll speed |
 | `about.html` | Education timeline whose line fills as you scroll, strengths that light up in order, portrait parallax |
 | `skills.html` | 3D sphere of skill labels that sticks beside the lists and highlights the group in view |
 | `projects.html` | Stacked case studies that tilt in from 3D and shrink back under the next one, with a filter |
 | `certifications.html` | Certificate swings in from a 3D angle and settles flat, numbers count up |
-| `contact.html` | Blob that leans toward the pointer, large email link with a copy button |
+| `contact.html` | Butterfly that follows the scroll and leans toward the pointer, large email link with a copy button |
 
 Pages change with cross-document View Transitions. Browsers without them get a coral curtain wipe instead.
 

@@ -1,29 +1,29 @@
-import { createAmbient } from './ambient.js';
+import { createAmbient, DEFAULT_MOBILE_PATH } from './ambient.js';
 
-/** Contact: one large, calm blob that leans toward the pointer. */
+/** Contact: one calm butterfly that flies down with the page and leans toward the pointer. */
 export function create(ctx) {
   const ambient = createAmbient(ctx, {
-    blobs: [{ position: [2.8, 0, -1], mobilePosition: [0.6, -2.4, -3], radius: 1.35, amp: 0.2, speed: 0.12 }],
+    butterflies: [
+      {
+        path: [[2.8, 0.6, -1.5], [-2.9, -0.4, -2.2], [2.9, -0.2, -1.8]],
+        mobilePath: DEFAULT_MOBILE_PATH,
+        lean: 0.9,
+        radius: 0.9,
+        amp: 0.2,
+      },
+    ],
     particles: 700,
     pointerStrength: 0.15,
     camera: { from: [0, 0, 7], to: [0, 0, 7] },
   });
-  const blob = ambient.blobs[0];
-  const home = blob.base.clone();
+  const fly = ambient.butterflies[0];
   const baseUpdate = ambient.update;
-  const baseResize = ambient.resize;
 
   return {
     ...ambient,
-    resize(w, h) {
-      baseResize(w, h);
-      home.copy(blob.base);
-    },
     update(state, dt) {
-      const k = dt ? 1 - Math.pow(0.1, dt) : 1;
-      blob.base.x += (home.x + state.pointer.x * 0.9 - blob.base.x) * k;
-      blob.base.y += (home.y + state.pointer.y * 0.6 - blob.base.y) * k;
-      blob.uniforms.uAmp.value = 0.2 + Math.hypot(state.pointer.x, state.pointer.y) * 0.08;
+      // Wings reach further as the pointer moves away from centre.
+      fly.uniforms.uAmp.value = 0.2 + Math.hypot(state.pointer.x, state.pointer.y) * 0.08;
       baseUpdate(state, dt);
     },
   };

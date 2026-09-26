@@ -2,20 +2,21 @@ import * as THREE from 'three';
 import { createAmbient } from './ambient.js';
 
 /**
- * Home: the hero blob travels between "stations" as sections scroll by.
- * `target` is tweened by src/pages/home.js; update() eases the blob toward it.
+ * Home: the butterfly travels between "stations" as sections scroll by.
+ * `target` is tweened by src/pages/home.js; update() eases the butterfly toward it.
+ * amp / freq / rim map to wing reach, beat rate and edge glow.
  */
 export function create(ctx) {
   const ambient = createAmbient(ctx, {
-    blobs: [
+    butterflies: [
       { position: [2.5, 0.5, -0.5], mobilePosition: [1.2, 2.5, -3.5], radius: 1.3, amp: 0.22 },
-      { position: [4.4, -1.6, -2.5], mobilePosition: [-2.4, -3.4, -5], radius: 0.5, amp: 0.16, speed: 0.3 },
+      { position: [4.4, -1.6, -2.5], mobilePosition: [-2.4, -3.4, -5], radius: 0.5, amp: 0.16, freq: 1.2 },
     ],
     camera: { from: [0, 0, 7], to: [0, -0.4, 6.4] },
   });
 
-  const hero = ambient.blobs[0];
-  const satellite = ambient.blobs[1];
+  const hero = ambient.butterflies[0];
+  const satellite = ambient.butterflies[1];
   const target = {
     x: hero.base.x,
     y: hero.base.y,

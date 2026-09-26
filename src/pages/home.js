@@ -2,10 +2,10 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { mountInteractiveCharacter } from '../components/InteractiveCharacter/InteractiveCharacter.js';
 
-/** Blob stations per section: [x, y, z], scale, opacity, satellite opacity. */
+/** Butterfly stations per section: [x, y, z], scale, opacity, satellite opacity. */
 const STATIONS = {
   desktop: {
-    // Hero belongs to the interactive character; the blob fades in from the intro.
+    // Hero belongs to the interactive character; the butterfly flies in from the intro.
     hero: { x: 3.4, y: 1.7, z: -3.4, scale: 0.75, opacity: 0, satellite: 0 },
     intro: { x: 3.4, y: 1.7, z: -3.4, scale: 0.75, opacity: 1, satellite: 0 },
     focus: { x: -3.3, y: -1.7, z: -2, scale: 0.62, opacity: 1, satellite: 0 },
@@ -21,7 +21,7 @@ const STATIONS = {
   },
 };
 
-/** Shape personality for each focus area: amplitude, frequency, rim light. */
+/** Wing personality for each focus area: reach, beat rate, edge glow. */
 const MORPHS = [
   { amp: 0.22, freq: 0.75, rim: 0.6 },
   { amp: 0.14, freq: 1.25, rim: 0.85 },
@@ -67,7 +67,7 @@ export async function init({ env, engine }) {
   const eng = await engine;
   const api = eng?.api;
 
-  // Focus list: highlight the item nearest the middle of the viewport and morph the blob.
+  // Focus list: highlight the item nearest the middle of the viewport and change the butterfly's wing beat.
   if (focusList && focusItems.length && !env.reducedMotion) {
     focusList.classList.add('is-tracking');
     const settle = () => {
@@ -105,7 +105,7 @@ export async function init({ env, engine }) {
 
   if (!api || env.reducedMotion) return;
 
-  // Blob travels between stations, scrubbed to each section's entrance.
+  // Butterfly flies between stations, scrubbed to each section's entrance.
   const s = env.mobile ? STATIONS.mobile : STATIONS.desktop;
   api.sync();
   Object.assign(api.target, s.hero);
