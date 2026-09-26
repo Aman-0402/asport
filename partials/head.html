@@ -1,6 +1,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#1b1614">
 <meta name="author" content="Astha Shukla">
 <meta property="og:site_name" content="Astha Shukla">
@@ -12,12 +12,6 @@
 <link rel="expect" href="#main" blocking="render">
 <script>
   (function () {
-    try {
-      var t = localStorage.getItem('astha-theme');
-      document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark';
-    } catch (e) {
-      document.documentElement.dataset.theme = 'dark';
-    }
     var root = document.documentElement;
     root.classList.add('js');
     var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

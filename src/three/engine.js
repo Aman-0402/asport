@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
-import { getTheme, onThemeChange } from '../core/theme.js';
 
 const scenes = {
   home: () => import('./scenes/home.js'),
@@ -22,7 +21,7 @@ function disposeScene(scene) {
 /**
  * Boots the single fixed WebGL canvas and the scene for the current page.
  * Scene modules export `create(ctx)` returning
- * `{ scene, camera, update(state, dt), resize?(w, h), setTheme?(t), dispose?() }`.
+ * `{ scene, camera, update(state, dt), resize?(w, h), dispose?() }`.
  * Resolves to null when WebGL is unavailable, so pages never depend on it.
  */
 export async function startEngine({ page, env, scroll }) {
@@ -46,7 +45,7 @@ export async function startEngine({ page, env, scroll }) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
 
   const { create } = await load();
-  const api = create({ renderer, env, theme: getTheme() });
+  const api = create({ renderer, env });
 
   const state = {
     time: 0,
@@ -100,11 +99,6 @@ export async function startEngine({ page, env, scroll }) {
       api.update(state, 0);
       render();
     }
-  });
-
-  onThemeChange((theme) => {
-    api.setTheme?.(theme);
-    render();
   });
 
   // Phones and low-power machines render at ~30fps; motion stays time-based.

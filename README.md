@@ -21,7 +21,7 @@ Pages change with cross-document View Transitions. Browsers without them get a c
 - **Three.js**: one fixed canvas, custom GLSL shaders (simplex-noise displacement with a fresnel rim), and a separate scene module for each page, loaded only when needed.
 - **GSAP + ScrollTrigger** for scroll animation, and **Lenis** for smooth scrolling on the same ticker.
 - Self-hosted variable fonts: Bricolage Grotesque (display) and Manrope (body).
-- OKLCH design tokens, dark by default with a light theme.
+- OKLCH design tokens, dark theme only.
 
 ## Accessibility and performance
 

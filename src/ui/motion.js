@@ -1,7 +1,6 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { splitText, splitWords } from './split.js';
-import { onThemeChange } from '../core/theme.js';
 
 /** Masked word/char rise for `[data-split]` headings. */
 export function initSplitReveals(env) {
@@ -73,12 +72,6 @@ export function initScrubWords(env) {
       );
     };
     build();
-    onThemeChange(() => {
-      tween.scrollTrigger?.kill();
-      tween.kill();
-      gsap.set(words, { clearProps: 'color' });
-      build();
-    });
   });
 }
 

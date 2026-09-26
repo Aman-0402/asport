@@ -97,10 +97,5 @@ export function createBlob({ radius = 1, detail = 48, amp = 0.2, freq = 0.75, sp
   return {
     mesh,
     uniforms: material.uniforms,
-    setPalette(p) {
-      material.uniforms.uColorA.value.set(p.coral);
-      material.uniforms.uColorB.value.set(p.coralDeep);
-      material.uniforms.uRim.value.set(p.mint);
-    },
   };
 }

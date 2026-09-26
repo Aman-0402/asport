@@ -42,7 +42,7 @@ npm run preview   # Serve dist/ locally
 ├── public/                static assets copied as-is (photo, certificate, favicon, robots.txt, sitemap.xml)
 ├── src/
 │   ├── main.js            entry for every page: boots scroll, 3D, transitions, UI, then page module
-│   ├── core/              lenis + gsap setup, theme, nav, reduced-motion + WebGL capability checks
+│   ├── core/              lenis + gsap setup, nav, reduced-motion + WebGL capability checks
 │   ├── three/             renderer singleton, shared materials/palette, scenes/<page>.js
 │   ├── pages/             per-page scroll choreography (<page>.js), selected by body[data-page]
 │   ├── ui/                reusable behaviors (split text, magnetic buttons, counters, tilt, filter)
@@ -56,7 +56,7 @@ npm run preview   # Serve dist/ locally
 - **Partials:** nav/footer/head markup lives once in `partials/` and is injected with `<!-- @include name -->` via the custom plugin in `vite.config.js`. Never duplicate nav/footer into pages.
 - **Page identity:** `<body data-page="...">` selects the page module in `src/pages/` and the 3D scene in `src/three/scenes/`, and drives the active nav link.
 - **One WebGL canvas** (`#webgl`, fixed, behind content). Scenes are lazy-imported per page so Three.js code for other pages is never loaded.
-- **Styling:** CSS only, no inline `<style>` blocks, no inline `style=""` except values set by JS animation. Tokens in `src/styles/tokens.css` (OKLCH). Dark is default; light theme via `[data-theme="light"]`. Preference stored in `localStorage` key `astha-theme`.
+- **Styling:** CSS only, no inline `<style>` blocks, no inline `style=""` except values set by JS animation. Tokens in `src/styles/tokens.css` (OKLCH). Dark theme only (no light theme or toggle).
 - **Accent lock:** coral is the only UI accent. Mint appears only as a lighting tint inside 3D scenes.
 - **Radius system:** buttons/tags full-pill, cards and media 14px, nothing larger.
 - **Motion rules:** animate `transform`/`opacity` (and shader uniforms) only. UI transitions under 300ms with `cubic-bezier(0.23, 1, 0.32, 1)`. Scroll-scrubbed motion may be longer.
@@ -77,7 +77,7 @@ npm run preview   # Serve dist/ locally
 - Tuning at the top of the file: `POSES`, `CENTER_FRAMES`, `REST_FRAME`, `SKIP_FRAMES`, `PLAYBACK`, `MAPPING`, `TRACKING`, `MOTION`, `FACE_ORIGIN`.
 - Phones and reduced motion load and show frame 290 only (no listeners, no preload). The render loop stops when the character settles.
 - Source media (MP4, PNG frames, contact sheet, the previous `webp` set) live in gitignored `assets-src/character/`; never put them back in `public/`.
-- Hero copy (intro, name `h1`, tagline, rotator, CTAs, highlights) sits in `.hero__content` over the empty dark left half of the frame. The hero keeps dark tokens in the light theme. Below 900px the character stacks above the copy instead of behind it.
+- Hero copy (intro, name `h1`, tagline, rotator, CTAs, highlights) sits in `.hero__content` over the empty dark left half of the frame. Below 900px the character stacks above the copy instead of behind it.
 - The home 3D blob is hidden in the hero station so it does not compete with the blob baked into the frames.
 
 ## Content source
@@ -110,7 +110,7 @@ Status legend: `[ ]` todo, `[x]` done.
 - [x] `package.json`, Vite MPA config with 6 entries and partial-include plugin
 - [x] Move assets to `public/` (rename certificate to a URL-safe filename)
 - [x] New token system (OKLCH, dark default + light), self-hosted fonts, base/layout/components CSS
-- [x] Shared nav (with mobile menu, theme toggle) and footer as partials
+- [x] Shared nav (with mobile menu) and footer as partials
 - [x] Port all six pages' content into the new markup skeleton (no 3D yet), remove old `styles.css`/`main.js`
 - [x] Build passes
 
@@ -137,7 +137,7 @@ Status legend: `[ ]` todo, `[x]` done.
 - [x] Cross-page transitions (View Transitions API, overlay fallback)
 - [x] Preloader tied to font + scene readiness (short, skippable)
 - [x] All interaction states (hover, focus-visible, active) audited
-- [x] Light theme pass on every page, 3D palette follows theme
+- [x] Dark-only theme (light theme and toggle removed)
 
 ### Phase 6: SEO, performance, deploy
 - [x] Meta, Open Graph, JSON-LD, canonical, sitemap.xml, robots.txt, favicon

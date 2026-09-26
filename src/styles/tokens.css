@@ -1,4 +1,4 @@
-/* Design tokens. Dark is the default theme; light overrides below. */
+/* Design tokens. The site is dark only. */
 
 :root {
   /* Palette: warm ink neutrals, coral accent (locked), mint for 3D light only */
@@ -71,27 +71,4 @@
   --nav-h: 72px;
 
   color-scheme: dark;
-}
-
-[data-theme="light"] {
-  --bg: oklch(0.972 0.008 55);
-  --bg-raised: oklch(0.945 0.012 55);
-  --surface: oklch(0.99 0.005 55);
-  --surface-hover: oklch(0.955 0.01 55);
-  --line: oklch(0.87 0.014 45);
-  --line-strong: oklch(0.72 0.02 40);
-  --text: oklch(0.22 0.02 35);
-  --text-muted: oklch(0.43 0.02 35);
-  --text-faint: oklch(0.52 0.018 35);
-  --accent: oklch(0.6 0.175 33);
-  --accent-hover: oklch(0.55 0.175 33);
-  --accent-ink: oklch(0.99 0.005 55);
-  --accent-soft: oklch(0.6 0.175 33 / 0.1);
-  --mint: oklch(0.6 0.09 180);
-  --focus: oklch(0.5 0.16 260);
-  --backdrop-a: oklch(0.8 0.1 33 / 0.45);
-  --backdrop-b: oklch(0.85 0.06 180 / 0.35);
-  --shadow-card: 0 8px 8px -6px oklch(0.4 0.03 35 / 0.18);
-
-  color-scheme: light;
 }

@@ -30,20 +30,6 @@
   padding-bottom: clamp(var(--space-7), 8vh, var(--space-9));
 }
 
-/* The hero is dark in both themes (the frames are), so keep light-on-dark tokens here. */
-[data-theme="light"] .hero {
-  --text: oklch(0.955 0.008 50);
-  --text-muted: oklch(0.82 0.014 45);
-  --text-faint: oklch(0.7 0.014 45);
-  --line: oklch(0.42 0.016 35);
-  --line-strong: oklch(0.55 0.02 35);
-  --surface: oklch(0.26 0.017 35);
-  --accent: oklch(0.73 0.155 33);
-  --accent-hover: oklch(0.78 0.14 33);
-  --accent-ink: oklch(0.2 0.03 33);
-  color: var(--text);
-}
-
 /* Copy sits in the empty dark half of the frame, left of the character. */
 .hero__content {
   display: grid;

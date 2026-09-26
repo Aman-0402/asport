@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import { createBlob } from '../blob.js';
 import { createParticles } from '../particles.js';
-import { palettes } from '../palette.js';
+import { palette } from '../palette.js';
 
 /**
  * Shared scene recipe: a few noise blobs plus drifting particles, with the
  * camera dollying along z as the page scrolls. Page scenes pass config and
  * may extend the returned object.
  */
-export function createAmbient({ renderer, env, theme }, config = {}) {
+export function createAmbient({ renderer, env }, config = {}) {
   const {
     blobs = [{ position: [2.4, 0.4, 0], radius: 1.4 }],
     particles = 520,
@@ -17,7 +17,6 @@ export function createAmbient({ renderer, env, theme }, config = {}) {
     spin = 0.08,
   } = config;
 
-  let palette = palettes[theme];
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
   camera.position.set(...cam.from);
@@ -75,11 +74,6 @@ export function createAmbient({ renderer, env, theme }, config = {}) {
       // Pan rather than orbit: look straight ahead so scene content scrolls with the page.
       lookAt.set(camera.position.x * 0.5, camera.position.y, 0);
       camera.lookAt(lookAt);
-    },
-    setTheme(next) {
-      palette = palettes[next];
-      blobItems.forEach((b) => b.setPalette(palette));
-      dust.setPalette(palette);
     },
     resize(w) {
       // Keep the composition readable on narrow screens: push blobs back and centre them.

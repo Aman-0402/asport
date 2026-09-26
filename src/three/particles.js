@@ -65,8 +65,5 @@ export function createParticles({ count = 600, spread = [16, 12, 14], size = 2.2
   return {
     points,
     uniforms: material.uniforms,
-    setPalette(p) {
-      material.uniforms.uColor.value.set(p.particle);
-    },
   };
 }

@@ -1,5 +1,4 @@
 import { env } from './core/env.js';
-import { initTheme } from './core/theme.js';
 import { initNav } from './core/nav.js';
 import { initScroll } from './core/scroll.js';
 import { runLoader, initTransitions } from './core/transitions.js';
@@ -25,7 +24,6 @@ const pageModules = {
 
 const page = document.body.dataset.page;
 
-initTheme();
 const scroll = initScroll(env);
 const nav = initNav({ lockScroll: scroll.lock, unlockScroll: scroll.unlock });
 scroll.subscribe(({ y }) => nav.onScroll(y));
