@@ -1,6 +1,7 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { splitText, splitWords } from './split.js';
+import { onThemeChange } from '../core/theme.js';
 
 /** Masked word/char rise for `[data-split]` headings. */
 export function initSplitReveals(env) {
@@ -41,21 +42,43 @@ export function initReveals(env) {
   });
 }
 
-/** Word-by-word opacity scrubbed to scroll for `[data-scrub-words]`. */
+/** Resolves a CSS colour token (OKLCH here) to rgb() so GSAP can interpolate it. */
+const colorCanvas = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+function tokenToRgb(name) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  colorCanvas.clearRect(0, 0, 1, 1);
+  colorCanvas.fillStyle = value;
+  colorCanvas.fillRect(0, 0, 1, 1);
+  const [r, g, b] = colorCanvas.getImageData(0, 0, 1, 1).data;
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/** Word-by-word colour scrubbed to scroll for `[data-scrub-words]`. */
 export function initScrubWords(env) {
   if (env.reducedMotion) return;
   document.querySelectorAll('[data-scrub-words]').forEach((el) => {
     const words = splitWords(el);
-    gsap.fromTo(
-      words,
-      { opacity: 0.16 },
-      {
-        opacity: 1,
-        ease: 'none',
-        stagger: 0.1,
-        scrollTrigger: { trigger: el, start: 'top 82%', end: 'bottom 50%', scrub: true },
-      }
-    );
+    let tween;
+    // Animate colour, not opacity, so dimmed words still meet AA contrast.
+    const build = () => {
+      tween = gsap.fromTo(
+        words,
+        { color: tokenToRgb('--text-faint') },
+        {
+          color: tokenToRgb('--text'),
+          ease: 'none',
+          stagger: 0.1,
+          scrollTrigger: { trigger: el, start: 'top 82%', end: 'bottom 50%', scrub: true },
+        }
+      );
+    };
+    build();
+    onThemeChange(() => {
+      tween.scrollTrigger?.kill();
+      tween.kill();
+      gsap.set(words, { clearProps: 'color' });
+      build();
+    });
   });
 }
 

@@ -62,7 +62,7 @@ npm run preview   # Serve dist/ locally
 - **Motion rules:** animate `transform`/`opacity` (and shader uniforms) only. UI transitions under 300ms with `cubic-bezier(0.23, 1, 0.32, 1)`. Scroll-scrubbed motion may be longer.
 - **Reduced motion is mandatory:** `prefers-reduced-motion: reduce` disables Lenis, scrubbed 3D camera moves, and split-text; content must render fully visible with no animation.
 - **No-WebGL fallback:** if WebGL is unavailable, skip Three.js entirely and show the CSS gradient backdrop. No page may depend on the canvas for content.
-- **Performance budget:** device pixel ratio capped at 2 (1.5 on mobile), pause render loop when tab hidden, dispose scene on page leave, target Lighthouse Performance >= 85 on mobile.
+- **Performance budget:** device pixel ratio capped at 2 (1.5 on mobile), ~30fps on mobile/low-power, pause render loop when tab hidden, dispose scene on page leave, engine loads after `load` + idle with `compileAsync`, software WebGL treated as no WebGL (`?webgl=force` to override). Target Lighthouse Performance >= 85 on mobile.
 - **Copy rules:** no em dashes or en dashes anywhere (use commas, colons, hyphens). No buzzwords. No invented stats: only numbers from the resume.
 - **Contact privacy:** phone number is intentionally hidden. Do not add `tel:` links or phone copy unless the user asks.
 - **SEO:** unique `<title>` and meta description per page, one `h1` per page, JSON-LD `Person` on home, canonical URLs, `sitemap.xml`, `robots.txt`, descriptive alt text.
@@ -126,7 +126,8 @@ Status legend: `[ ]` todo, `[x]` done.
 - [x] Light theme pass on every page, 3D palette follows theme
 
 ### Phase 6: SEO, performance, deploy
-- [ ] Meta, Open Graph, JSON-LD, canonical, sitemap.xml, robots.txt, favicon
-- [ ] Image optimization, lazy loading, code-split check
-- [ ] GitHub Actions workflow to deploy `dist/` to GitHub Pages
-- [ ] Final design-taste pre-flight + README update
+- [x] Meta, Open Graph, JSON-LD, canonical, sitemap.xml, robots.txt, favicon
+- [x] Image optimization, lazy loading, code-split check
+- [x] GitHub Actions workflow to deploy `dist/` to GitHub Pages
+- [ ] Enable Pages in repo settings (Source: GitHub Actions); owner action
+- [x] Final design-taste pre-flight + README update

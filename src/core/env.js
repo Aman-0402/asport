@@ -1,9 +1,20 @@
 /** One-time capability snapshot used to decide how much motion and 3D to run. */
 
+/**
+ * True only for hardware-accelerated WebGL. Software rasterizers (SwiftShader,
+ * llvmpipe) make every frame a long main-thread task, so those devices get the
+ * CSS backdrop instead. `?webgl=force` overrides for testing.
+ */
 function hasWebGL() {
   try {
     const canvas = document.createElement('canvas');
-    return Boolean(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    if (!gl) return false;
+    if (new URLSearchParams(location.search).get('webgl') === 'force') return true;
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    const renderer = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return !/swiftshader|llvmpipe|softpipe|software/i.test(renderer);
   } catch {
     return false;
   }

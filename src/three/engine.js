@@ -58,6 +58,13 @@ export async function startEngine({ page, env, scroll }) {
 
   const render = () => renderer.render(api.scene, api.camera);
 
+  // Compile shaders off the main thread where KHR_parallel_shader_compile exists.
+  try {
+    await renderer.compileAsync(api.scene, api.camera);
+  } catch {
+    /* falls back to compiling on the first render */
+  }
+
   const resize = () => {
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -100,9 +107,15 @@ export async function startEngine({ page, env, scroll }) {
     render();
   });
 
+  // Phones and low-power machines render at ~30fps; motion stays time-based.
+  const frameBudget = env.mobile || env.lowPower ? 1 / 32 : 0;
+  let pending = 0;
   const tick = (_time, deltaMs) => {
     if (document.hidden) return;
-    const dt = Math.min(deltaMs / 1000, 1 / 20);
+    pending += deltaMs / 1000;
+    if (pending < frameBudget) return;
+    const dt = Math.min(pending, 1 / 20);
+    pending = 0;
     state.time += dt;
     const k = 1 - Math.pow(0.001, dt);
     state.pointer.x += (state.pointerTarget.x - state.pointer.x) * k;

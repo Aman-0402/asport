@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aman-0402.github.io/asport/sitemap.xml

@@ -13,7 +13,7 @@ function store(key, value) {
 }
 
 /**
- * First-visit loader. Resolves when fonts are ready (min 900ms, max 2s) so
+ * First-visit loader. Resolves when fonts are ready (min 600ms, max 2s) so
  * entrance animations start once the loader has lifted.
  */
 export function runLoader(env) {
@@ -25,7 +25,7 @@ export function runLoader(env) {
   }
   store(VISITED_KEY, '1');
 
-  const minWait = new Promise((r) => setTimeout(r, 900));
+  const minWait = new Promise((r) => setTimeout(r, 600));
   const fonts = document.fonts?.ready ?? Promise.resolve();
   const cap = new Promise((r) => setTimeout(r, 2000));
 

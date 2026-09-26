@@ -46,9 +46,16 @@ initRotator(env.reducedMotion);
 initProjectFilter();
 initTransitions(env);
 
-// 3D starts loading behind the loader; entrance animations wait for it to lift.
+// 3D boots after first paint work settles so shader compilation never delays content.
+const idle = () =>
+  new Promise((resolve) => {
+    const go = () => ('requestIdleCallback' in window ? requestIdleCallback(resolve, { timeout: 1200 }) : setTimeout(resolve, 200));
+    if (document.readyState === 'complete') go();
+    else window.addEventListener('load', go, { once: true });
+  });
 const engine = env.webgl
-  ? import('./three/engine.js')
+  ? idle()
+      .then(() => import('./three/engine.js'))
       .then(({ startEngine }) => startEngine({ page, env, scroll }))
       .catch((err) => {
         console.warn('3D scene disabled:', err);

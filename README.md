@@ -1,71 +1,53 @@
-# Astha Shukla — Portfolio Website
+# Astha Shukla | Portfolio
 
-A 6-page personal portfolio website for Astha Shukla, a BBA Marketing student, built with plain HTML, CSS, and JavaScript.
+A six-page portfolio for Astha Shukla, BBA Marketing student at Allenhouse Business School, Kanpur. It uses 3D graphics and scroll-driven animation: a WebGL scene moves with the page, and each page has its own scroll effects.
 
-## Theme
+## Pages
 
-**Coral, Ink & Fresh Mint** — a warm but more professional palette suited to a marketing/branding-focused portfolio. Typography uses Plus Jakarta Sans for headings and Manrope for body text.
+| Page | What happens |
+| --- | --- |
+| `index.html` | Noise-shaped 3D blob that moves between sections as you scroll and changes shape for each focus area. Also: a statement whose words light up as you scroll, and a tools marquee that speeds up with scroll speed |
+| `about.html` | Education timeline whose line fills as you scroll, strengths that light up in order, portrait parallax |
+| `skills.html` | 3D sphere of skill labels that sticks beside the lists and highlights the group in view |
+| `projects.html` | Stacked case studies that tilt in from 3D and shrink back under the next one, with a filter |
+| `certifications.html` | Certificate swings in from a 3D angle and settles flat, numbers count up |
+| `contact.html` | Blob that leans toward the pointer, large email link with a copy button |
 
-## 📄 Pages
+Pages change with cross-document View Transitions. Browsers without them get a coral curtain wipe instead.
 
-| Page | Description |
-|---|---|
-| `index.html` | Hero intro with animated typing effect, quick stats, highlights |
-| `about.html` | Professional summary, education timeline, key strengths, languages & interests |
-| `skills.html` | Marketing, Professional, and Digital skills as polished skill pills |
-| `projects.html` | Academic project case studies with Research / Presentation filter tabs |
-| `certifications.html` | HubSpot certificate, achievements, and animated counters |
-| `contact.html` | Email and location contact details |
+## Tech
 
-## Features
+- **Vite** multi-page build. Shared head, nav, and footer are HTML partials injected at build time.
+- **Three.js**: one fixed canvas, custom GLSL shaders (simplex-noise displacement with a fresnel rim), and a separate scene module for each page, loaded only when needed.
+- **GSAP + ScrollTrigger** for scroll animation, and **Lenis** for smooth scrolling on the same ticker.
+- Self-hosted variable fonts: Bricolage Grotesque (display) and Manrope (body).
+- OKLCH design tokens, dark by default with a light theme.
 
-- Fully responsive layout (mobile hamburger nav, fluid grid)
-- Local scroll-reveal animations on section entry
-- Animated hero typing effect
-- Animated counters
-- Project category filtering
-- Photo-based profile sections and visible certificate asset
-- Zero dependencies beyond Google Fonts + normalize.css (via CDN)
+## Accessibility and performance
 
-## Tech Stack
+- `prefers-reduced-motion` turns off smooth scroll, split text, scrubbed motion, and animated 3D. All content stays visible.
+- Devices with software-only WebGL, or no WebGL at all, get a CSS gradient backdrop instead of the 3D scene.
+- Three.js loads after first paint and compiles its shaders asynchronously. On phones it renders at about 30fps with a capped pixel ratio.
+- Lighthouse (mobile): Accessibility 100, SEO 100, Best Practices 100, Performance 85 to 91.
 
-- HTML5
-- CSS3 (custom properties, Flexbox, Grid)
-- Vanilla JavaScript (`IntersectionObserver`, no frameworks)
+## Develop
 
-## Running Locally
-
-No build step required.
-
-1. Clone or download this folder.
-2. Open `index.html` in any browser, **or**
-3. Serve it with a static server (recommended, for consistent relative paths):
-   ```bash
-   npx serve .
-   ```
-   or use VS Code's "Live Server" extension.
-
-## Project Structure
-
-```
-/
-├── index.html
-├── about.html
-├── skills.html
-├── projects.html
-├── certifications.html
-├── contact.html
-├── styles.css
-├── main.js
-├── photo.jpeg
-├── Digital Marketing Certified by HubSpot Academy.png
-├── AGENTS.md
-└── README.md
+```bash
+npm install
+npm run dev       # dev server on port 5173
+npm run build     # outputs dist/
+npm run preview   # serve dist/
 ```
 
-See [AGENTS.md](./AGENTS.md) for coding conventions and structure notes if extending the site.
+To test 3D on a machine without GPU acceleration, add `?webgl=force` to the URL.
+
+## Deploy
+
+`.github/workflows/deploy.yml` builds the site and publishes `dist/` to GitHub Pages on every push to `main`. In the repo, go to **Settings > Pages > Source** and choose **GitHub Actions** once.
+
+See [AGENTS.md](./AGENTS.md) for conventions and the build plan.
 
 ## Contact
 
-- **Email:** aasthashuklaastha44@gmail.com
-- **Location:** Kanpur, Uttar Pradesh
+- Email: aasthashuklaastha44@gmail.com
+- Based in Kanpur, Uttar Pradesh
