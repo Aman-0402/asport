@@ -72,6 +72,8 @@ export function createAmbient({ renderer, env, theme }, config = {}) {
       desired.x += state.pointer.x * pointerStrength;
       desired.y += state.pointer.y * pointerStrength;
       camera.position.lerp(desired, dt ? 1 - Math.pow(0.02, dt) : 1);
+      // Pan rather than orbit: look straight ahead so scene content scrolls with the page.
+      lookAt.set(camera.position.x * 0.5, camera.position.y, 0);
       camera.lookAt(lookAt);
     },
     setTheme(next) {

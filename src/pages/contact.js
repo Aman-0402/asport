@@ -1,2 +1,2 @@
-/** Page-specific scroll choreography. Filled in during Phases 3 and 4. */
+/** Contact: the 3D blob leans toward the pointer (handled in scenes/contact.js). */
 export function init() {}

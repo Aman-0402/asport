@@ -113,11 +113,11 @@ Status legend: `[ ]` todo, `[x]` done.
 - [x] Horizontal marquee of focus areas, CTA to projects/contact
 
 ### Phase 4: Inner pages, 3D per page
-- [ ] About: scroll-drawn 3D path through education timeline
-- [ ] Skills: interactive 3D sphere/orbit of skill labels grouped by category
-- [ ] Projects: pinned horizontal pan with 3D tilt case-study panels and filter
-- [ ] Certifications: 3D certificate plane that turns in on scroll, animated counters
-- [ ] Contact: calm particle field, large email CTA with copy-to-clipboard
+- [x] About: scroll-drawn 3D path through education timeline
+- [x] Skills: 3D sphere of skill labels (CSS-projected DOM text) in a sticky column, highlighting the group in view
+- [x] Projects: sticky stacked case panels that tilt in from 3D and recede under the next, with filter
+- [x] Certifications: 3D certificate plane that turns in on scroll, animated counters
+- [x] Contact: pointer-following blob, large email CTA with copy-to-clipboard
 
 ### Phase 5: Transitions and polish
 - [ ] Cross-page transitions (View Transitions API, overlay fallback)

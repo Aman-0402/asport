@@ -8,7 +8,7 @@ const STATIONS = {
     intro: { x: 3.4, y: 1.7, z: -3.4, scale: 0.75, opacity: 1, satellite: 0 },
     focus: { x: -3.3, y: -1.7, z: -2, scale: 0.62, opacity: 1, satellite: 0 },
     work: { x: 4.2, y: 2.3, z: -6, scale: 0.6, opacity: 0.8, satellite: 0 },
-    cert: { x: -3.7, y: -2.3, z: -3, scale: 0.7, opacity: 1, satellite: 1 },
+    cert: { x: -4, y: -2.9, z: -3.4, scale: 0.7, opacity: 1, satellite: 1 },
   },
   mobile: {
     hero: { x: 1.2, y: 2.5, z: -3.5, scale: 1, opacity: 1, satellite: 1 },

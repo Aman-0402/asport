@@ -124,16 +124,14 @@
 /* ================= Skills ================= */
 .skill-sphere {
   position: relative;
-  width: min(100%, 460px);
+  width: min(100%, 480px);
   aspect-ratio: 1;
   margin-inline: auto;
-  perspective: 900px;
 }
 
 .skill-sphere__ring {
   position: absolute;
   inset: 0;
-  transform-style: preserve-3d;
 }
 
 .skill-sphere__ring li {
@@ -148,7 +146,7 @@
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--line);
-  backface-visibility: hidden;
+  will-change: transform, opacity;
   transition: color var(--dur-ui) var(--ease-out), background-color var(--dur-ui) var(--ease-out), border-color var(--dur-ui) var(--ease-out);
 }
 
@@ -179,24 +177,38 @@
   border-color: var(--accent);
 }
 
-.skill-group {
+.skills-layout {
   display: grid;
   gap: var(--space-6);
+}
+
+@media (min-width: 960px) {
+  .skills-layout {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: var(--space-9);
+  }
+
+  .skills-layout__visual {
+    order: 2;
+    position: sticky;
+    top: calc(var(--nav-h) + var(--space-6));
+    align-self: start;
+    height: calc(100svh - var(--nav-h) - var(--space-8));
+    display: grid;
+    place-items: center;
+  }
+}
+
+.skill-group {
+  display: grid;
+  gap: var(--space-5);
   padding-block: var(--space-8);
   border-top: 1px solid var(--line);
 }
 
-@media (min-width: 900px) {
-  .skill-group {
-    grid-template-columns: 0.8fr 1.2fr;
-    gap: var(--space-9);
-  }
-
-  .skill-group__head {
-    position: sticky;
-    top: calc(var(--nav-h) + var(--space-6));
-    align-self: start;
-  }
+.skill-group:first-child {
+  border-top: 0;
+  padding-top: 0;
 }
 
 .skill-group__head p {
