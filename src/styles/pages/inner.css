@@ -369,6 +369,26 @@
   margin-block: var(--space-5);
 }
 
+.certificate__copy .certificate__meta {
+  margin-block: 0 var(--space-3);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.certificate + .certificate {
+  padding-top: 0;
+}
+
+@media (min-width: 900px) {
+  .certificate--flip .certificate__grid {
+    grid-template-columns: 0.8fr 1.2fr;
+  }
+
+  .certificate--flip .certificate__stage {
+    order: 2;
+  }
+}
+
 .counts__list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

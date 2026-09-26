@@ -36,11 +36,17 @@
   z-index: var(--z-transition);
   background: var(--accent);
   transform: translateY(100%);
+  visibility: hidden;
   pointer-events: none;
+}
+
+.page-curtain.is-active {
+  visibility: visible;
 }
 
 .curtain-in .page-curtain {
   transform: translateY(0);
+  visibility: visible;
 }
 
 /* ---------- First-visit loader ---------- */

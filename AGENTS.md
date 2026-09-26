@@ -73,6 +73,7 @@ All copy comes from Astha Shukla's resume/profile (see git history of the origin
 
 - BBA Marketing, Allenhouse Business School, Kanpur, 2025 to present
 - Class XII 86%, Class X 80%, K.R. Education Centre
+- Agentic AI Certified Foundations Associate, Oracle University (Oracle Certified), September 18, 2026
 - Digital Marketing certification, HubSpot Academy
 - Projects: Consumer Preference & Online Shopping Research; Marketing & Business Presentations
 - Email: aasthashuklaastha44@gmail.com, based in Kanpur, Uttar Pradesh

@@ -61,6 +61,7 @@ export function initTransitions(env) {
         onComplete: () => {
           root.classList.remove('curtain-in');
           gsap.set(curtain, { clearProps: 'transform' });
+          curtain.classList.remove('is-active');
         },
       }
     );
@@ -77,6 +78,7 @@ export function initTransitions(env) {
     if (url.pathname === location.pathname) return;
 
     e.preventDefault();
+    curtain.classList.add('is-active');
     gsap.fromTo(
       curtain,
       { yPercent: 100 },
@@ -94,6 +96,8 @@ export function initTransitions(env) {
 
   // Returning via the back button restores a page from bfcache with the curtain up.
   window.addEventListener('pageshow', (e) => {
-    if (e.persisted) gsap.set(curtain, { yPercent: 100 });
+    if (!e.persisted) return;
+    gsap.set(curtain, { yPercent: 100 });
+    curtain.classList.remove('is-active');
   });
 }
