@@ -10,6 +10,7 @@ export function create(ctx) {
         lean: 0.9,
         radius: 0.9,
         amp: 0.2,
+        colors: { coral: '#5fe0b8', coralDeep: '#1f8a6c', mint: '#d2fff0' }, // emerald
       },
     ],
     particles: 700,

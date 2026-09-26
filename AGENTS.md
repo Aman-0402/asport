@@ -82,7 +82,7 @@ npm run preview   # Serve dist/ locally
 
 ## 3D butterfly
 
-`src/three/butterfly.js`: procedural butterfly (shape-geometry wings on hinges, shader with coral gradient, veins, edge spots, mint shimmer). It keeps the old blob uniform names: `uAmp` = wing reach, `uFreq` = beat rate, `uRimStrength` = edge glow, `uOpacity`. Wings beat faster with scroll velocity. `scenes/ambient.js` flies it along a scroll `path` (camera-relative CatmullRom, `mobilePath` below 768px, optional pointer `lean`) and fades it to 35% while crossing mid-screen. Home keeps its station tweens instead of a path.
+`src/three/butterfly.js`: procedural butterfly (shape-geometry wings on hinges, shader with coral gradient, veins, edge spots, mint shimmer). It keeps the old blob uniform names: `uAmp` = wing reach, `uFreq` = beat rate, `uRimStrength` = edge glow, `uOpacity`. Wings beat faster with scroll velocity. `scenes/ambient.js` flies it along a scroll `path` (camera-relative CatmullRom, `mobilePath` below 768px, optional pointer `lean`) and fades it to 35% while crossing mid-screen. Home keeps its station tweens instead of a path. Each page sets its own `colors` (wing, base, edge glow): home coral, about monarch orange, skills blue morpho, projects violet, certifications gold, contact emerald.
 
 ## Content source
 

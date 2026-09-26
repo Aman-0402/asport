@@ -1,9 +1,9 @@
 import { createAmbient, DEFAULT_PATH, DEFAULT_MOBILE_PATH } from './ambient.js';
 
-/** Certifications: the butterfly flies a zig-zag path as the page scrolls. */
+/** Certifications: a gold butterfly flies a zig-zag path as the page scrolls. */
 export function create(ctx) {
   return createAmbient(ctx, {
-    butterflies: [{ path: DEFAULT_PATH, mobilePath: DEFAULT_MOBILE_PATH, radius: 0.8, amp: 0.2 }],
+    butterflies: [{ path: DEFAULT_PATH, mobilePath: DEFAULT_MOBILE_PATH, radius: 0.8, amp: 0.2, colors: { coral: '#ffd166', coralDeep: '#b8860b', mint: '#fff3c4' } }],
     camera: { from: [0, 0, 7], to: [0, -4, 6] },
   });
 }

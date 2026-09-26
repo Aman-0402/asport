@@ -48,7 +48,8 @@ export function createAmbient({ renderer, env }, config = {}) {
   const toCurve = (pts) => pts && new THREE.CatmullRomCurve3(pts.map((q) => new THREE.Vector3(...q)));
   let narrow = false;
   const items = butterflies.map((b) => {
-    const fly = createButterfly({ ...b, palette });
+    // `colors` overrides the palette per page: { coral (wing), coralDeep (base), mint (edge glow) }.
+    const fly = createButterfly({ ...b, palette: { ...palette, ...b.colors } });
     const start = b.path ? b.path[0] : b.position;
     fly.mesh.position.set(...start);
     fly.base = new THREE.Vector3(...start);
