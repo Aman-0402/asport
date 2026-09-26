@@ -1,106 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Astha Shukla | Marketing & Business Portfolio</title>
-<meta name="description" content="Astha Shukla — BBA Marketing student portfolio: skills, academic projects, and career interests in digital marketing and brand management.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
-<link rel="stylesheet" href="styles.css">
+<!-- @include head -->
+<title>Astha Shukla | Marketing Student Portfolio</title>
+<meta name="description" content="Astha Shukla is a BBA Marketing student at Allenhouse Business School, Kanpur, working on consumer research, digital marketing, brand communication, and marketing analytics.">
+<link rel="canonical" href="https://aman-0402.github.io/asport/">
+<meta property="og:type" content="profile">
+<meta property="og:title" content="Astha Shukla | Marketing Student Portfolio">
+<meta property="og:description" content="Consumer research, digital marketing, and brand communication work by Astha Shukla, BBA Marketing student.">
+<meta property="og:image" content="https://aman-0402.github.io/asport/images/astha-shukla.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Astha Shukla",
+  "jobTitle": "BBA Marketing Student",
+  "email": "mailto:aasthashuklaastha44@gmail.com",
+  "image": "https://aman-0402.github.io/asport/images/astha-shukla.jpg",
+  "url": "https://aman-0402.github.io/asport/",
+  "address": { "@type": "PostalAddress", "addressLocality": "Kanpur", "addressRegion": "Uttar Pradesh", "addressCountry": "IN" },
+  "alumniOf": { "@type": "CollegeOrUniversity", "name": "Allenhouse Business School" },
+  "knowsAbout": ["Digital Marketing", "Market Research", "Consumer Behaviour", "Brand Management", "Marketing Analytics", "CRM"],
+  "hasCredential": { "@type": "EducationalOccupationalCredential", "name": "Digital Marketing Certification", "recognizedBy": { "@type": "Organization", "name": "HubSpot Academy" } }
+}
+</script>
 </head>
 <body data-page="home">
+<!-- @include nav -->
 
-<header class="navbar">
-  <div class="container">
-    <a href="index.html" class="nav-brand">Astha <span>Shukla</span></a>
-    <div class="nav-actions">
-      <nav class="nav-links">
-        <a href="index.html" data-page="home">Home</a>
-        <a href="about.html" data-page="about">About</a>
-        <a href="skills.html" data-page="skills">Skills</a>
-        <a href="projects.html" data-page="projects">Projects</a>
-        <a href="certifications.html" data-page="certifications">Certifications</a>
-        <a href="contact.html" data-page="contact">Contact</a>
-      </nav>
-      <button class="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false">
-        <span class="theme-toggle-icon" aria-hidden="true"></span>
-      </button>
-      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
-    </div>
-  </div>
-</header>
-
-<main>
-  <section class="hero">
-    <div class="container">
-      <div class="hero-content" data-aos="fade-right" data-aos-duration="800">
-        <p class="hero-tagline">BBA Marketing Student | Allenhouse Business School</p>
-        <h1 class="hero-title">Hi, I'm <span class="hero-name">Astha</span>.<br>I work on<br><span class="hero-typed" data-phrases='["Digital Campaign Ideas", "Consumer Research", "Brand Communication", "Marketing Analytics"]'></span></h1>
-        <p class="hero-desc">Marketing student focused on digital marketing, consumer research, brand communication, and insight-led presentations. I enjoy turning classroom projects, surveys, and business ideas into clear stories that teams can act on.</p>
-        <div class="hero-actions">
-          <a href="projects.html" class="btn btn-primary">View My Projects</a>
-          <a href="contact.html" class="btn btn-outline">Get In Touch</a>
-        </div>
-        <div class="hero-stats">
-          <div class="stat">
-            <div class="stat-number">2025</div>
-            <div class="stat-label">BBA Started</div>
-          </div>
-          <div class="stat">
-            <div class="stat-number">2+</div>
-            <div class="stat-label">Academic Projects</div>
-          </div>
-          <div class="stat">
-            <div class="stat-number">7+</div>
-            <div class="stat-label">Digital Tools Practiced</div>
-          </div>
-        </div>
-      </div>
-      <div class="hero-visual" data-aos="fade-left" data-aos-duration="800" data-aos-delay="150">
-        <div class="avatar"><img src="photo.jpeg" alt="Astha Shukla"></div>
+<main id="main">
+  <section class="hero" data-hero>
+    <div class="container hero__inner">
+      <p class="hero__intro" data-reveal>BBA Marketing, Allenhouse Business School, Kanpur</p>
+      <h1 class="hero__title">
+        <span class="hero__name" data-split="chars">Astha Shukla</span>
+        <span class="hero__line" data-split="words">turns consumer research into brand stories people act on.</span>
+      </h1>
+      <p class="hero__rotator" data-reveal>
+        <span class="hero__rotator-label">Working on</span>
+        <span class="rotator" data-rotator aria-live="off">
+          <span>digital campaign ideas</span>
+          <span>consumer research</span>
+          <span>brand communication</span>
+          <span>marketing analytics</span>
+        </span>
+      </p>
+      <div class="hero__actions" data-reveal>
+        <a href="projects.html" class="btn btn--primary" data-magnetic>See my projects</a>
+        <a href="contact.html" class="btn btn--ghost" data-magnetic>Get in touch</a>
       </div>
     </div>
   </section>
 
-  <section>
+  <section class="intro section" data-scene-step="intro">
+    <div class="container intro__grid">
+      <figure class="intro__photo" data-tilt data-reveal>
+        <img src="/images/astha-shukla.jpg" alt="Portrait of Astha Shukla" width="640" height="800" loading="lazy" decoding="async">
+      </figure>
+      <div class="intro__copy">
+        <h2 class="visually-hidden">About Astha</h2>
+        <p class="statement" data-scrub-words>I study marketing because I like the moment when survey answers turn into a pattern. I collect the data, sort it in Excel, and shape it into slides a team can follow and act on.</p>
+        <p class="intro__facts" data-reveal>Started BBA in 2025. Two academic projects completed. Seven digital tools in regular use. <a class="link-arrow" href="about.html">More about me</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="focus section" data-focus>
+    <div class="container focus__grid">
+      <div class="focus__head">
+        <h2 data-split="words">What I work on</h2>
+        <p data-reveal>Four areas I keep coming back to, in class projects and on my own.</p>
+      </div>
+      <ol class="focus__list">
+        <li class="focus__item" data-focus-item>
+          <h3>Digital campaign ideas</h3>
+          <p>Social and content ideas built on who the audience is and where they spend time, grounded in HubSpot's digital marketing training.</p>
+        </li>
+        <li class="focus__item" data-focus-item>
+          <h3>Consumer research</h3>
+          <p>Surveys on how students shop online: which platforms they pick, how much they spend, how they pay, and what they buy.</p>
+        </li>
+        <li class="focus__item" data-focus-item>
+          <h3>Brand communication</h3>
+          <p>Presentations and visuals in PowerPoint and Canva that make a business concept easy to follow in one sitting.</p>
+        </li>
+        <li class="focus__item" data-focus-item>
+          <h3>Marketing analytics</h3>
+          <p>Organizing responses in Excel, charting what repeats, and pulling out the two or three findings that matter.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="work section">
     <div class="container">
-      <div class="section-title" data-aos="fade-up">
-        <span class="section-label">Quick Look</span>
-        <h2>What I Bring to the Table</h2>
-        <p>A snapshot of the skills and strengths that shape how I approach marketing and business problems.</p>
+      <div class="section-head">
+        <h2 data-split="words">Selected work</h2>
+        <a class="link-arrow" href="projects.html">All projects</a>
       </div>
-      <div class="grid grid-3">
-        <div class="card" data-aos="fade-up" data-aos-delay="0">
-          <span class="card-kicker">Positioning</span>
-          <h3>Marketing Mindset</h3>
-          <p>Grounded in digital marketing, consumer behaviour, branding, and marketing analytics fundamentals.</p>
-        </div>
-        <div class="card" data-aos="fade-up" data-aos-delay="100">
-          <span class="card-kicker">Research</span>
-          <h3>Analytical Thinking</h3>
-          <p>Comfortable turning survey data into charts and insights using Excel and data visualization.</p>
-        </div>
-        <div class="card" data-aos="fade-up" data-aos-delay="200">
-          <span class="card-kicker">Communication</span>
-          <h3>Creative Communication</h3>
-          <p>Confident presenter, using PowerPoint, Canva, and AI tools to tell a clear, visual story.</p>
-        </div>
+      <ul class="work__list">
+        <li>
+          <a class="work-row" href="projects.html#online-shopping-research" data-tilt>
+            <span class="work-row__type">Research</span>
+            <span class="work-row__title">Consumer Preference and Online Shopping Research</span>
+            <span class="work-row__tools">Survey, MS Excel, report</span>
+          </a>
+        </li>
+        <li>
+          <a class="work-row" href="projects.html#business-presentations" data-tilt>
+            <span class="work-row__type">Presentations</span>
+            <span class="work-row__title">Marketing and Business Presentation Series</span>
+            <span class="work-row__tools">PowerPoint, Canva, research</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="tools" aria-label="Tools I use">
+    <div class="marquee" data-marquee>
+      <ul class="marquee__track">
+        <li>MS Excel</li><li>PowerPoint</li><li>Word</li><li>Canva</li><li>AI productivity tools</li><li>Online research</li><li>Data visualization</li><li>Social media marketing</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="cert-teaser section">
+    <div class="container cert-teaser__grid">
+      <div>
+        <h2 data-split="words">Certified in digital marketing by HubSpot Academy</h2>
+        <p data-reveal>The course covered online strategy, content, and customer focus, and it shapes how I plan campaign ideas.</p>
+        <a class="link-arrow" href="certifications.html" data-reveal>View certificate</a>
       </div>
+      <figure class="cert-teaser__image" data-tilt data-reveal>
+        <img src="/images/hubspot-digital-marketing-certificate.png" alt="HubSpot Academy Digital Marketing certificate awarded to Astha Shukla" loading="lazy" decoding="async">
+      </figure>
     </div>
   </section>
 </main>
 
-<footer class="footer">
-  <div class="container">
-    <p>Astha Shukla — BBA Marketing, Allenhouse Business School, Kanpur</p>
-    <p>&copy; 2026 Astha Shukla.</p>
-  </div>
-</footer>
-
-<script src="main.js"></script>
+<!-- @include footer -->
+<!-- @include scripts -->
 </body>
 </html>

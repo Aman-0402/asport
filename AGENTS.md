@@ -93,12 +93,12 @@ Status legend: `[ ]` todo, `[x]` done.
 - [x] Gitignore `web-dev-skills/`, `node_modules/`, `dist/`
 
 ### Phase 1: Vite foundation and design system
-- [ ] `package.json`, Vite MPA config with 6 entries and partial-include plugin
-- [ ] Move assets to `public/` (rename certificate to a URL-safe filename)
-- [ ] New token system (OKLCH, dark default + light), self-hosted fonts, base/layout/components CSS
-- [ ] Shared nav (with mobile menu, theme toggle) and footer as partials
-- [ ] Port all six pages' content into the new markup skeleton (no 3D yet), remove old `styles.css`/`main.js`
-- [ ] Build passes
+- [x] `package.json`, Vite MPA config with 6 entries and partial-include plugin
+- [x] Move assets to `public/` (rename certificate to a URL-safe filename)
+- [x] New token system (OKLCH, dark default + light), self-hosted fonts, base/layout/components CSS
+- [x] Shared nav (with mobile menu, theme toggle) and footer as partials
+- [x] Port all six pages' content into the new markup skeleton (no 3D yet), remove old `styles.css`/`main.js`
+- [x] Build passes
 
 ### Phase 2: Motion and 3D engine
 - [ ] Lenis smooth scroll synced to GSAP ticker + ScrollTrigger
