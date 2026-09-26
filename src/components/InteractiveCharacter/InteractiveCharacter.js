@@ -14,9 +14,8 @@
  *
  * Entering a cell plays the footage into that cell's pose and holds still on
  * it (`POSE`). Moving to another cell always goes via CENTRE: back to the
- * centre pose, then out to the new pose. One move plays at most MAX_TRAVEL
- * frames; a longer trip jumps close to the goal and cross-fades in, so she
- * never sweeps through the other poses on the way.
+ * centre pose, then out to the new pose, playing every frame in between
+ * (backwards when returning), so the motion is always continuous.
  *
  * Source: public/character/webp-main/frame_0001.webp ... frame_0300.webp
  * (10 s clip, 800x450). Observed sequence, viewer's point of view:
@@ -65,13 +64,6 @@ const HUB = 126;
 /** Frame each zone settles and holds on (its clearest pose). */
 const POSE = { left: 82, center: HUB, right: 160, downLeft: 215, down: 186, downRight: 172 };
 
-/**
- * Longest run of footage one move plays. A longer trip jumps to this many
- * frames before the goal and cross-fades in, so a move never sweeps through
- * other poses on the way.
- */
-const MAX_TRAVEL = 24;
-
 /** Grid, row by row, left to right (matches the header diagram). */
 const GRID = [
   ['left', 'center', 'right'],
@@ -108,9 +100,8 @@ const BREAKPOINTS = { mobile: 767, tablet: 1199 };
  * - travelMax / travelMin: speed limits while moving between poses.
  * - smoothing: share of the remaining distance used as the desired speed.
  * - accel: how quickly speed approaches that desired speed (eases starts).
- * - fadeTicks / fadeAlpha: length and strength of the cross-fade after a jump.
  */
-const MOTION = { travelMax: 1.6, travelMin: 0.35, smoothing: 0.12, accel: 0.3, fadeTicks: 8, fadeAlpha: 0.3 };
+const MOTION = { travelMax: 1.6, travelMin: 0.35, smoothing: 0.12, accel: 0.3 };
 
 /** Face position inside the frame (fractions of width/height): crop anchor on portrait screens. */
 const FACE_ORIGIN = { x: 0.69, y: 0.33 };
@@ -254,16 +245,9 @@ export function getDrawRect(width, height, fit, focus) {
 }
 
 /** Draws frame `n` into `rect` (device pixels). */
-export function drawFrame(ctx, frames, n, rect, alpha = 1) {
+export function drawFrame(ctx, frames, n, rect) {
   const img = nearestLoaded(frames, n);
   if (!img) return false;
-  if (alpha < 1) {
-    // Blend over what is on screen (cross-fade after a jump).
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h);
-    ctx.globalAlpha = 1;
-    return true;
-  }
   const { width, height } = ctx.canvas;
   ctx.fillStyle = '#120f0c';
   ctx.fillRect(0, 0, width, height);
@@ -316,8 +300,6 @@ export function mountInteractiveCharacter(
     target: 'center', // zone under the pointer
     leg: 'center', // zone whose path the playhead is on
     currentFrame: REST_FRAME,
-    goal: REST_FRAME,
-    fade: 0,
     speed: 0,
     direction: 1,
     drawnFrame: -1,
@@ -403,17 +385,6 @@ export function mountInteractiveCharacter(
     let goal = REST_FRAME;
     if (animated()) goal = refs.leg !== refs.target ? HUB : POSE[refs.leg];
 
-    // New goal far away: jump close to it and cross-fade instead of sweeping.
-    if (goal !== refs.goal) {
-      refs.goal = goal;
-      const delta = goal - refs.currentFrame;
-      if (Math.abs(delta) > MAX_TRAVEL) {
-        refs.currentFrame = goal - Math.sign(delta) * MAX_TRAVEL;
-        refs.speed = 0;
-        refs.fade = MOTION.fadeTicks;
-      }
-    }
-
     const delta = goal - refs.currentFrame;
     const distance = Math.abs(delta);
     let moving = distance > 0.02;
@@ -435,16 +406,10 @@ export function mountInteractiveCharacter(
     }
 
     const n = shownFrame();
-    if (refs.fade > 0) {
-      refs.fade -= 1;
-      const alpha = refs.fade > 0 ? MOTION.fadeAlpha : 1;
-      if (drawFrame(ctx, frames, n, rect, alpha)) refs.drawnFrame = refs.fade > 0 ? -1 : n;
-    } else if (n !== refs.drawnFrame && drawFrame(ctx, frames, n, rect)) {
-      refs.drawnFrame = n;
-    }
+    if (n !== refs.drawnFrame && drawFrame(ctx, frames, n, rect)) refs.drawnFrame = n;
 
     // Stops once holding a pose: a settled character costs nothing.
-    const settled = !moving && refs.fade <= 0 && refs.drawnFrame === n && refs.leg === refs.target;
+    const settled = !moving && refs.drawnFrame === n && refs.leg === refs.target;
     if (inView && !settled) rafId = requestAnimationFrame(animate);
   }
   function start() {
