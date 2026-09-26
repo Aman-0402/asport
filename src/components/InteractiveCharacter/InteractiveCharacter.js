@@ -2,87 +2,87 @@
  * InteractiveCharacter
  * --------------------
  * A single canvas that shows one frame of a pre-rendered character at a time.
- * The character "watches" the visitor's pointer: the pointer direction picks a
- * representative frame, and the displayed frame eases toward it along the
- * original frame sequence, so every in-between frame is real footage.
+ * The character watches the visitor's pointer. The pointer position maps to a
+ * target frame, and the displayed frame travels there along the real footage,
+ * so every in-between image is genuine motion (eyes lead, head follows).
+ *
+ * Source: public/character/webp-main/frame_0001.webp ... frame_0300.webp
+ * (10 s clip, 800x450). Observed sequence, viewer's point of view:
+ *
+ *    1-28   centre (blink 11-20)            29-60   wind-up (blink, glance)
+ *   61-93   LEFT, head + eyes (peak ~82)     94-99   blink            (skipped)
+ *  100-128  back to CENTRE (~126)          131-150   eyes move right, head still
+ *  151-164  RIGHT, head follows (~160)     167-178   DOWN-RIGHT (~172)
+ *  180-192  DOWN (~186)                    197-227   DOWN-LEFT (~215)
+ *  228-234  blink                (skipped) 235-300   back to CENTRE, settling
+ *
+ * Only frames 82-279 are used. Centre 126 and centre 279 are nearly identical,
+ * so they are joined (with a short crossfade) and the playable path becomes a
+ * loop: LEFT - CENTRE - RIGHT - DOWN-RIGHT - DOWN - DOWN-LEFT - CENTRE.
+ * Travel always takes the shorter way round that loop.
  *
  * Usage:
- *   import { mountInteractiveCharacter } from './InteractiveCharacter.js';
- *   const destroy = mountInteractiveCharacter(containerEl, { trackingArea: heroEl });
+ *   const destroy = mountInteractiveCharacter(el, { trackingArea: heroEl, fit: 'cover' });
  */
 
 /* ============================================================
    Configuration (edit here)
    ============================================================ */
 
-/** Frame files: public/character/webp/frame_0001.webp ... frame_0300.webp */
-const FRAME_COUNT = 300;
-const frameUrl = (n) => `${import.meta.env.BASE_URL}character/webp/frame_${String(n).padStart(4, '0')}.webp`;
+const FRAME_DIR = 'character/webp-main';
+const frameUrl = (n) => `${import.meta.env.BASE_URL}${FRAME_DIR}/frame_${String(n).padStart(4, '0')}.webp`;
 
-/** Native frame size, used for the canvas aspect ratio. */
+/** Native frame size, used for the aspect ratio. */
 const FRAME_WIDTH = 800;
 const FRAME_HEIGHT = 450;
 
-/** Representative frame (1-based) for each gaze direction. */
-const DIRECTION_FRAMES = {
-  center: 1,
-  left: 50,
-  topLeft: 80,
-  topRight: 112,
-  right: 145,
-  bottomRight: 178,
-  bottomLeft: 212,
+/** Pose frames (1-based), read from the footage (see header). */
+const POSES = {
+  left: 82,
+  center: 126,
+  right: 160,
+  downRight: 172,
+  down: 186,
+  downLeft: 215,
 };
 
+/** Playable range of the footage, and the two matching centre frames joined into a loop. */
+const PATH = { start: 82, end: 279 };
+const LOOP_LINK = { from: POSES.center, to: 279, fadeMs: 240 };
+
+/** Blinks inside the path. Never displayed; the nearest open-eye frame is shown instead. */
+const SKIP_FRAMES = [
+  [94, 99],
+  [228, 234],
+];
+
 /**
- * Tracking behaviour per device class.
- * - deadZone: radius around the character's centre (as a fraction of the
- *   tracking area's smaller side) where the character looks straight ahead.
- * - sensitivity: scales the pointer offset before the dead-zone test. Lower
- *   values mean the pointer must travel further before the gaze changes.
+ * Pointer to pose mapping. Offsets are normalized from the character's face:
+ * x -1 = hero's left edge, 0 = face, +1 = right edge (same for y).
+ * - deadZone: |offset| below this keeps the neutral pose for that axis.
+ * - lowerRowAt: y offset where the gaze drops to the "down" row.
+ * - rowHysteresis: extra y travel needed to switch rows (prevents flicker).
  */
+const MAPPING = { deadZone: 0.08, lowerRowAt: 0.3, rowHysteresis: 0.07 };
+
+/** Per device class. `sensitivity` scales pointer offsets (lower = calmer). */
 const TRACKING = {
-  desktop: { enabled: true, deadZone: 0.12, sensitivity: 1 },
-  tablet: { enabled: true, deadZone: 0.2, sensitivity: 0.6 },
-  mobile: { enabled: false, deadZone: 1, sensitivity: 0 },
+  desktop: { enabled: true, sensitivity: 1 },
+  tablet: { enabled: true, sensitivity: 0.6 },
+  mobile: { enabled: false, sensitivity: 0 },
 };
 const BREAKPOINTS = { mobile: 767, tablet: 1199 };
 
 /**
- * How the pointer picks a pose.
- * - 'zones': the tracking area is split into a grid; each cell maps to one
- *   direction in ZONES.map (predictable, easy to tune).
- * - 'angle': direction from the character's face, with a dead zone (TRACKING).
+ * Motion along the footage, in frames per display frame (60 Hz):
+ * - smoothing: share of the remaining distance used as the desired speed.
+ * - accel: how quickly speed approaches that desired speed (eases starts).
+ * - maxStep / minStep: speed limits; maxStep ~2 plays about 4x real time.
  */
-const TRACKING_MODE = 'zones';
+const MOTION = { smoothing: 0.08, accel: 0.18, maxStep: 2.2, minStep: 0.2 };
 
-/**
- * Zone grid for TRACKING_MODE 'zones'. `map` is rows (top to bottom) of
- * columns (left to right); any DIRECTION_FRAMES key works in any cell.
- * - hysteresis: how far (fraction of the area) the pointer must move past a
- *   zone border before the pose switches, so it never flickers on a line.
- * Add `?zones` to the page URL to see the grid while tuning.
- */
-const ZONES = {
-  map: [
-    ['topLeft', 'center', 'topRight'],
-    ['bottomLeft', 'center', 'bottomRight'],
-  ],
-  hysteresis: 0.03,
-};
-
-/**
- * Motion.
- * - smoothing: fraction of the remaining distance covered each frame (0..1).
- * - maxStep: cap on frames advanced per tick, so long transitions play as
- *   motion instead of skipping.
- * - loop: the sequence ends where it starts (frame 300 is next to frame 1),
- *   so transitions may wrap around and take the shorter path.
- */
-const MOTION = { smoothing: 0.1, maxStep: 5, loop: true };
-
-/** Where the face sits inside the frame (fractions of width/height): the gaze origin. */
-const FACE_ORIGIN = { x: 0.5, y: 0.42 };
+/** Face position inside the frame (fractions of width/height): gaze origin and crop anchor. */
+const FACE_ORIGIN = { x: 0.69, y: 0.33 };
 
 /** Frames downloaded in parallel after the first one. */
 const PRELOAD_CONCURRENCY = 6;
@@ -107,15 +107,17 @@ export function loadFrame(n) {
 }
 
 /**
- * Loads every frame progressively without blocking the page: direction frames
- * first (so gaze works early), then the rest in sequence order.
- * `frames[i]` is filled as each image arrives; `isCancelled()` stops the queue.
+ * Loads the playable range progressively without blocking the page: pose
+ * frames first, then the rest ordered by distance from the centre frames.
+ * `frames[n]` fills as each image arrives; `isCancelled()` stops the queue.
  */
 export function preloadFrames(frames, { isCancelled, onFrame }) {
-  const priority = [...new Set(Object.values(DIRECTION_FRAMES))];
+  const poses = [...Object.values(POSES), LOOP_LINK.to];
   const rest = [];
-  for (let n = 1; n <= FRAME_COUNT; n++) if (!priority.includes(n) && !frames[n - 1]) rest.push(n);
-  const queue = [...priority.filter((n) => !frames[n - 1]), ...rest];
+  for (let n = PATH.start; n <= PATH.end; n++) if (!poses.includes(n) && !isSkipped(n)) rest.push(n);
+  const nearCentre = (n) => Math.min(Math.abs(n - LOOP_LINK.from), Math.abs(n - LOOP_LINK.to));
+  rest.sort((a, b) => nearCentre(a) - nearCentre(b));
+  const queue = [...poses, ...rest].filter((n) => !frames[n]);
 
   const worker = async () => {
     while (queue.length && !isCancelled()) {
@@ -123,7 +125,7 @@ export function preloadFrames(frames, { isCancelled, onFrame }) {
       const img = await loadFrame(n);
       if (isCancelled()) return;
       if (img) {
-        frames[n - 1] = img;
+        frames[n] = img;
         onFrame?.(n);
       }
     }
@@ -135,134 +137,130 @@ export function preloadFrames(frames, { isCancelled, onFrame }) {
 }
 
 /* ============================================================
-   Direction mapping
+   Pointer to pose
    ============================================================ */
 
-/**
- * Returns a direction key for a pointer offset from the character's centre.
- * Angles are measured in screen space (y grows downward):
- *   right       -30..30      bottomRight  30..90     bottomLeft  90..150
- *   left        150..-150    topLeft    -150..-90    topRight   -90..-30
- */
-export function getMouseDirection(dx, dy, radius, { deadZone, sensitivity }) {
-  const sx = dx * sensitivity;
-  const sy = dy * sensitivity;
-  if (Math.hypot(sx, sy) < radius * deadZone) return 'center';
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-  const angle = (Math.atan2(sy, sx) * 180) / Math.PI;
-  if (angle >= -30 && angle < 30) return 'right';
-  if (angle >= 30 && angle < 90) return 'bottomRight';
-  if (angle >= 90 && angle < 150) return 'bottomLeft';
-  if (angle >= -90 && angle < -30) return 'topRight';
-  if (angle >= -150 && angle < -90) return 'topLeft';
-  return 'left';
+/** Dead zone plus ease-out: small offsets move the eyes, large ones turn the head. */
+function shapeAxis(v) {
+  const a = Math.abs(v);
+  if (a <= MAPPING.deadZone) return 0;
+  const t = Math.min(1, (a - MAPPING.deadZone) / (1 - MAPPING.deadZone));
+  return Math.sign(v) * t * (2 - t);
 }
 
 /**
- * Grid cell under the pointer, in normalized area coordinates (0..1).
- * Stays in `previous` until the pointer is `ZONES.hysteresis` past its border.
+ * Normalized pointer offset from the face, per side of the tracking area,
+ * so every edge reaches +-1 regardless of where the face sits.
  */
-export function getZone(nx, ny, previous) {
-  const rows = ZONES.map.length;
-  const cols = ZONES.map[0].length;
-  const clamp = (v, max) => Math.min(max - 1, Math.max(0, v));
-  if (previous) {
-    const m = ZONES.hysteresis;
-    const inside =
-      nx >= previous.col / cols - m && nx <= (previous.col + 1) / cols + m &&
-      ny >= previous.row / rows - m && ny <= (previous.row + 1) / rows + m;
-    if (inside) return previous;
-  }
-  const col = clamp(Math.floor(nx * cols), cols);
-  const row = clamp(Math.floor(ny * rows), rows);
-  return { row, col, direction: ZONES.map[row][col] };
+export function getMouseDirection(mouseX, mouseY, face, area, sensitivity) {
+  const nx = mouseX < face.x ? (mouseX - face.x) / Math.max(1, face.x - area.left) : (mouseX - face.x) / Math.max(1, area.right - face.x);
+  const ny = mouseY < face.y ? (mouseY - face.y) / Math.max(1, face.y - area.top) : (mouseY - face.y) / Math.max(1, area.bottom - face.y);
+  return { x: clamp(nx * sensitivity, -1, 1), y: clamp(ny * sensitivity, -1, 1) };
 }
 
-/** Zero-based frame index for a direction key. */
-export function getTargetFrame(direction) {
-  return (DIRECTION_FRAMES[direction] ?? DIRECTION_FRAMES.center) - 1;
+/**
+ * Target frame for a normalized offset. The upper row blends centre toward
+ * left or right; the lower row blends down toward down-left or down-right.
+ * Returns the chosen row too, so the caller can apply row hysteresis.
+ */
+export function getTargetFrame(offset, previousRow = 'upper') {
+  const split = MAPPING.lowerRowAt;
+  const h = MAPPING.rowHysteresis;
+  const row =
+    previousRow === 'lower' ? (offset.y < split - h ? 'upper' : 'lower') : offset.y > split + h ? 'lower' : 'upper';
+  const s = shapeAxis(offset.x);
+  const frame =
+    row === 'upper'
+      ? s < 0 ? lerp(POSES.center, POSES.left, -s) : lerp(POSES.center, POSES.right, s)
+      : s < 0 ? lerp(POSES.down, POSES.downLeft, -s) : lerp(POSES.down, POSES.downRight, s);
+  return { frame, row };
 }
 
-/** Signed distance from `from` to `to`, taking the short way round when looping. */
-function frameDelta(from, to) {
-  let d = to - from;
-  if (MOTION.loop) {
-    const half = FRAME_COUNT / 2;
-    d = ((((d + half) % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT) - half;
-  }
-  return d;
+/**
+ * Shortest route between two path positions, allowing the centre link.
+ * Returns the next waypoint and whether reaching it means crossing the link.
+ */
+function route(from, to) {
+  const { from: a, to: b } = LOOP_LINK;
+  const direct = Math.abs(to - from);
+  const viaA = Math.abs(from - a) + Math.abs(to - b);
+  const viaB = Math.abs(from - b) + Math.abs(to - a);
+  if (direct <= viaA && direct <= viaB) return { distance: direct, waypoint: to, jumpTo: null };
+  return viaA < viaB
+    ? { distance: viaA, waypoint: a, jumpTo: b }
+    : { distance: viaB, waypoint: b, jumpTo: a };
+}
+
+function isSkipped(n) {
+  return SKIP_FRAMES.some(([lo, hi]) => n >= lo && n <= hi);
+}
+
+/** Frame to show for a path position: rounded, blinks replaced by the nearest open-eye frame. */
+function displayFrame(position) {
+  const n = clamp(Math.round(position), PATH.start, PATH.end);
+  const blink = SKIP_FRAMES.find(([lo, hi]) => n >= lo && n <= hi);
+  if (!blink) return n;
+  const [lo, hi] = blink;
+  return n - lo < hi - n ? lo - 1 : hi + 1;
 }
 
 /* ============================================================
    Drawing
    ============================================================ */
 
-/** Nearest loaded frame to `index`, so gaps during preload never flash blank. */
-function nearestLoaded(frames, index) {
-  if (frames[index]) return frames[index];
-  for (let o = 1; o < FRAME_COUNT; o++) {
-    const a = frames[(index + o) % FRAME_COUNT];
-    if (a) return a;
-    const b = frames[(index - o + FRAME_COUNT) % FRAME_COUNT];
-    if (b) return b;
+/** Nearest loaded frame to `n`, so gaps during preload never flash blank. */
+function nearestLoaded(frames, n) {
+  if (frames[n]) return frames[n];
+  for (let o = 1; o <= PATH.end - PATH.start; o++) {
+    if (frames[n - o]) return frames[n - o];
+    if (frames[n + o]) return frames[n + o];
   }
-  return null;
+  return frames[POSES.center] ?? null;
 }
 
 /**
  * Where the frame lands on a canvas of `width` x `height` device pixels.
- * - contain: canvas already matches the frame's aspect ratio, fill it.
- * - cover: fill the canvas without distortion, cropping around `focus`
- *   (focus.y = 0 keeps the top edge, so the head and hair are never cut).
+ * - contain: the canvas already has the frame's aspect ratio; fill it.
+ * - cover: fill without distortion. focus.y = 0 keeps the top edge (never cuts
+ *   the hair); focus.x = 'face' centres the face on portrait screens and keeps
+ *   the whole composition centred elsewhere.
  */
 export function getDrawRect(width, height, fit, focus) {
   if (fit !== 'cover') return { x: 0, y: 0, w: width, h: height };
   const scale = Math.max(width / FRAME_WIDTH, height / FRAME_HEIGHT);
   const w = FRAME_WIDTH * scale;
   const h = FRAME_HEIGHT * scale;
-  return { x: (width - w) * focus.x, y: (height - h) * focus.y, w, h };
+  let x;
+  if (focus.x === 'face') {
+    x = width / height < 1.1 ? width / 2 - w * FACE_ORIGIN.x : (width - w) * 0.5;
+    x = clamp(x, width - w, 0);
+  } else {
+    x = (width - w) * focus.x;
+  }
+  return { x, y: (height - h) * focus.y, w, h };
 }
 
-/** Draws one frame into `rect` (device pixels). */
-export function drawFrame(ctx, frames, index, rect) {
-  const img = nearestLoaded(frames, index);
+/** Draws frame `n`, optionally crossfading from frame `fadeFrom` (alpha 0..1 remaining). */
+export function drawFrame(ctx, frames, n, rect, fadeFrom = null, fadeAlpha = 0) {
+  const img = nearestLoaded(frames, n);
   if (!img) return false;
   const { width, height } = ctx.canvas;
-  const r = rect ?? { x: 0, y: 0, w: width, h: height };
+  ctx.globalAlpha = 1;
   ctx.fillStyle = '#120f0c';
   ctx.fillRect(0, 0, width, height);
-  ctx.drawImage(img, r.x, r.y, r.w, r.h);
+  ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h);
+  if (fadeFrom !== null && fadeAlpha > 0) {
+    const prev = nearestLoaded(frames, fadeFrom);
+    if (prev) {
+      ctx.globalAlpha = fadeAlpha;
+      ctx.drawImage(prev, rect.x, rect.y, rect.w, rect.h);
+      ctx.globalAlpha = 1;
+    }
+  }
   return true;
-}
-
-/* ============================================================
-   Tuning overlay
-   ============================================================ */
-
-/** Draws the zone grid with each cell's direction and frame. Dev aid only. */
-function createZoneOverlay(area) {
-  const overlay = document.createElement('div');
-  overlay.className = 'interactive-character__zones';
-  overlay.setAttribute('aria-hidden', 'true');
-  overlay.style.gridTemplateColumns = `repeat(${ZONES.map[0].length}, 1fr)`;
-  overlay.style.gridTemplateRows = `repeat(${ZONES.map.length}, 1fr)`;
-  const cells = [];
-  ZONES.map.forEach((row, r) =>
-    row.forEach((direction, c) => {
-      const cell = document.createElement('span');
-      cell.textContent = `${direction} (${DIRECTION_FRAMES[direction]})`;
-      cell.dataset.cell = `${r}-${c}`;
-      overlay.appendChild(cell);
-      cells.push(cell);
-    })
-  );
-  area.appendChild(overlay);
-  return {
-    highlight(zone) {
-      cells.forEach((cell) => cell.classList.toggle('is-active', !!zone && cell.dataset.cell === `${zone.row}-${zone.col}`));
-    },
-    remove: () => overlay.remove(),
-  };
 }
 
 /* ============================================================
@@ -285,13 +283,12 @@ function deviceClass() {
  *   drives the gaze (defaults to the container)
  * @param {'contain'|'cover'} [options.fit]  'contain' keeps the 16:9 box;
  *   'cover' fills the container (full-bleed hero)
- * @param {{x: number, y: number}} [options.focus]  crop anchor for 'cover'
- *   (0..1 per axis; y = 0 never crops the top of the head)
+ * @param {{x: number|'face', y: number}} [options.focus]  crop anchor for 'cover'
  * @returns {() => void} destroy function
  */
 export function mountInteractiveCharacter(
   container,
-  { trackingArea = container, fit = 'contain', focus = { x: 0.5, y: 0 } } = {}
+  { trackingArea = container, fit = 'contain', focus = { x: 'face', y: 0 } } = {}
 ) {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -303,22 +300,29 @@ export function mountInteractiveCharacter(
   container.appendChild(canvas);
   const ctx = canvas.getContext('2d', { alpha: false });
 
-  // High-frequency values live here, never in state that triggers re-rendering.
+  // High-frequency values live here, never in anything that re-renders.
   const refs = {
     mouseX: 0,
     mouseY: 0,
     hasPointer: false,
-    targetFrame: getTargetFrame('center'),
-    currentFrame: getTargetFrame('center'),
+    row: 'upper',
+    targetFrame: POSES.center,
+    currentFrame: POSES.center,
+    speed: 0,
     drawnFrame: -1,
-    zone: null,
+    fade: null, // { from: frame, start: ms } while crossing the centre link
   };
   let rect = { x: 0, y: 0, w: 0, h: 0 };
-  const frames = new Array(FRAME_COUNT).fill(null);
+  const frames = [];
   let cancelled = false;
   let rafId = 0;
   let inView = true;
   let tracking = reducedMotion ? TRACKING.mobile : TRACKING[deviceClass()];
+
+  const redraw = () => {
+    refs.drawnFrame = -1;
+    start();
+  };
 
   /* ---- canvas sizing (devicePixelRatio aware) ---- */
   const resize = () => {
@@ -327,56 +331,46 @@ export function mountInteractiveCharacter(
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.round(cssWidth * dpr);
     const h = Math.round(cssHeight * dpr);
-    if (canvas.width !== w || canvas.height !== h) {
+    if (w && h && (canvas.width !== w || canvas.height !== h)) {
       canvas.width = w;
       canvas.height = h;
       ctx.imageSmoothingQuality = 'high';
       rect = getDrawRect(w, h, fit, focus);
-      refs.drawnFrame = -1;
-      drawFrame(ctx, frames, Math.round(refs.currentFrame), rect);
+      drawFrame(ctx, frames, displayFrame(refs.currentFrame), rect);
+      refs.drawnFrame = displayFrame(refs.currentFrame);
     }
     if (!reducedMotion) tracking = TRACKING[deviceClass()];
     if (tracking.enabled) enableTracking();
     else {
-      refs.targetFrame = getTargetFrame('center');
-      start();
+      refs.hasPointer = false;
+      updateTarget();
     }
   };
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(container);
 
-  /* ---- optional zone overlay for tuning (?zones in the URL) ---- */
-  const debug =
-    TRACKING_MODE === 'zones' && new URLSearchParams(location.search).has('zones')
-      ? createZoneOverlay(trackingArea)
-      : null;
-
   /* ---- pointer tracking ---- */
-  const updateTarget = () => {
+  function updateTarget() {
     if (!tracking.enabled || !refs.hasPointer) {
-      refs.targetFrame = getTargetFrame('center');
-      refs.zone = null;
-      debug?.highlight(null);
+      refs.row = 'upper';
+      refs.targetFrame = POSES.center;
+      start();
       return;
     }
     const area = trackingArea.getBoundingClientRect();
-    if (TRACKING_MODE === 'zones') {
-      const nx = (refs.mouseX - area.left) / area.width;
-      const ny = (refs.mouseY - area.top) / area.height;
-      refs.zone = getZone(nx, ny, refs.zone);
-      refs.targetFrame = getTargetFrame(refs.zone.direction);
-      debug?.highlight(refs.zone);
-      return;
-    }
     const box = canvas.getBoundingClientRect();
-    // Face position on screen, following the cover crop when there is one.
+    // Face position on screen, following the cover crop.
     const px = box.width / canvas.width;
-    const centerX = box.left + (rect.x + rect.w * FACE_ORIGIN.x) * px;
-    const centerY = box.top + (rect.y + rect.h * FACE_ORIGIN.y) * px;
-    const radius = Math.min(area.width, area.height);
-    const direction = getMouseDirection(refs.mouseX - centerX, refs.mouseY - centerY, radius, tracking);
-    refs.targetFrame = getTargetFrame(direction);
-  };
+    const face = {
+      x: box.left + (rect.x + rect.w * FACE_ORIGIN.x) * px,
+      y: box.top + (rect.y + rect.h * FACE_ORIGIN.y) * px,
+    };
+    const offset = getMouseDirection(refs.mouseX, refs.mouseY, face, area, tracking.sensitivity);
+    const { frame, row } = getTargetFrame(offset, refs.row);
+    refs.row = row;
+    refs.targetFrame = frame;
+    start();
+  }
 
   const onPointerMove = (e) => {
     if (e.pointerType === 'touch') return;
@@ -384,21 +378,16 @@ export function mountInteractiveCharacter(
     refs.mouseY = e.clientY;
     refs.hasPointer = true;
     updateTarget();
-    start();
   };
   const onPointerLeave = () => {
     refs.hasPointer = false;
     updateTarget();
-    start();
   };
 
-  /**
-   * Attaches pointer listeners and starts the background preload the first
-   * time tracking is allowed (never on phones or with reduced motion).
-   */
+  /** Attaches listeners and starts the background preload once tracking is allowed. */
   let trackingStarted = false;
   function enableTracking() {
-    if (trackingStarted || cancelled || !frames[DIRECTION_FRAMES.center - 1]) return;
+    if (trackingStarted || cancelled || !frames[POSES.center]) return;
     trackingStarted = true;
     trackingArea.addEventListener('pointermove', onPointerMove, { passive: true });
     trackingArea.addEventListener('pointerleave', onPointerLeave);
@@ -406,31 +395,45 @@ export function mountInteractiveCharacter(
       isCancelled: () => cancelled,
       onFrame: (n) => {
         // Redraw if the frame on screen was a stand-in for this one.
-        if (n - 1 === Math.round(refs.currentFrame) % FRAME_COUNT) {
-          refs.drawnFrame = -1;
-          start();
-        }
+        if (n === displayFrame(refs.currentFrame)) redraw();
       },
     });
   }
 
-  /* ---- render loop ---- */
-  function animate() {
+  /* ---- render loop: eases the position along the footage toward the target ---- */
+  function animate(now) {
     rafId = 0;
-    const delta = frameDelta(refs.currentFrame, refs.targetFrame);
-    if (Math.abs(delta) > 0.01) {
-      let step = delta * MOTION.smoothing;
-      step = Math.max(-MOTION.maxStep, Math.min(MOTION.maxStep, step));
-      refs.currentFrame = (refs.currentFrame + step + FRAME_COUNT) % FRAME_COUNT;
+    const { distance, waypoint, jumpTo } = route(refs.currentFrame, refs.targetFrame);
+    let moving = distance > 0.02;
+
+    if (moving) {
+      const desired = clamp(distance * MOTION.smoothing, MOTION.minStep, MOTION.maxStep);
+      refs.speed += (desired - refs.speed) * MOTION.accel;
+      const toWaypoint = waypoint - refs.currentFrame;
+      const step = Math.min(Math.abs(toWaypoint), refs.speed);
+      refs.currentFrame += Math.sign(toWaypoint) * step;
+      if (jumpTo !== null && Math.abs(waypoint - refs.currentFrame) < 0.01) {
+        refs.fade = { from: displayFrame(refs.currentFrame), start: now };
+        refs.currentFrame = jumpTo;
+      }
     } else {
       refs.currentFrame = refs.targetFrame;
+      refs.speed = 0;
     }
 
-    const index = Math.round(refs.currentFrame) % FRAME_COUNT;
-    if (index !== refs.drawnFrame && drawFrame(ctx, frames, index, rect)) refs.drawnFrame = index;
+    let fadeAlpha = 0;
+    if (refs.fade) {
+      fadeAlpha = 1 - (now - refs.fade.start) / LOOP_LINK.fadeMs;
+      if (fadeAlpha <= 0) refs.fade = null;
+    }
 
-    // Keep ticking only while there is somewhere to go; idle costs nothing.
-    if (inView && (Math.abs(delta) > 0.01 || refs.drawnFrame !== index)) rafId = requestAnimationFrame(animate);
+    const n = displayFrame(refs.currentFrame);
+    if (n !== refs.drawnFrame || refs.fade) {
+      if (drawFrame(ctx, frames, n, rect, refs.fade?.from ?? null, fadeAlpha)) refs.drawnFrame = n;
+    }
+
+    // Keep ticking only while moving or fading; a settled character costs nothing.
+    if (inView && (moving || refs.fade || refs.drawnFrame !== n)) rafId = requestAnimationFrame(animate);
   }
   function start() {
     if (!rafId && inView && !cancelled) rafId = requestAnimationFrame(animate);
@@ -442,13 +445,13 @@ export function mountInteractiveCharacter(
   });
   visibility.observe(container);
 
-  /* ---- boot: first frame now, the rest in the background ---- */
-  loadFrame(DIRECTION_FRAMES.center).then((img) => {
+  /* ---- boot: centre frame now, the rest in the background ---- */
+  loadFrame(POSES.center).then((img) => {
     if (cancelled || !img) return;
-    frames[DIRECTION_FRAMES.center - 1] = img;
+    frames[POSES.center] = img;
     resize();
-    drawFrame(ctx, frames, getTargetFrame('center'), rect);
-    refs.drawnFrame = getTargetFrame('center');
+    drawFrame(ctx, frames, POSES.center, rect);
+    refs.drawnFrame = POSES.center;
     container.classList.add('is-ready');
     if (tracking.enabled) enableTracking();
   });
@@ -466,7 +469,6 @@ export function mountInteractiveCharacter(
       frames[i] = null;
     });
     canvas.remove();
-    debug?.remove();
     container.classList.remove('interactive-character', `interactive-character--${fit}`, 'is-ready');
   };
 }

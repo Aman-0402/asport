@@ -68,28 +68,6 @@
   mask-image: none;
 }
 
-/* Zone grid overlay, only when the URL has ?zones (tuning aid). */
-.interactive-character__zones {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: grid;
-  pointer-events: none;
-}
-
-.interactive-character__zones span {
-  display: grid;
-  place-items: center;
-  border: 1px dashed oklch(1 0 0 / 0.35);
-  font: 600 0.85rem/1.2 system-ui, sans-serif;
-  color: #fff;
-  text-shadow: 0 1px 3px #000;
-}
-
-.interactive-character__zones span.is-active {
-  background: oklch(0.73 0.155 33 / 0.22);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .interactive-character__canvas {
     transition: none;

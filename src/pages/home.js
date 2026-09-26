@@ -37,8 +37,8 @@ export async function init({ env, engine }) {
     const destroyCharacter = mountInteractiveCharacter(characterSlot, {
       trackingArea: hero ?? characterSlot,
       fit: 'cover',
-      // Keep the face in view on narrow screens and never crop the top of the head.
-      focus: { x: 0.5, y: 0 },
+      // Centre the face on portrait screens and never crop the top of the head.
+      focus: { x: 'face', y: 0 },
     });
     window.addEventListener('pagehide', (e) => !e.persisted && destroyCharacter(), { once: true });
   }

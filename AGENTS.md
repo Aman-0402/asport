@@ -69,14 +69,15 @@ npm run preview   # Serve dist/ locally
 
 ## Interactive hero character
 
-`src/components/InteractiveCharacter/InteractiveCharacter.js` (+ `.css`), mounted from `src/pages/home.js` into `[data-interactive-character]`.
+`src/components/InteractiveCharacter/InteractiveCharacter.js` (+ `.css`), mounted from `src/pages/home.js` into `[data-interactive-character]` (full-bleed, `fit: 'cover'`, `focus: { x: 'face', y: 0 }`).
 
-- One `<canvas>`, one frame drawn at a time; frames preloaded as `Image` objects (frame 1 first, direction frames next, rest in the background).
-- All tuning lives at the top of the file: `DIRECTION_FRAMES`, `TRACKING_MODE` ('zones' default, or 'angle'), `ZONES` (3x2 grid map + hysteresis), `TRACKING` (angle-mode dead zone and sensitivity per device class), `MOTION` (smoothing, max step, loop), `FACE_ORIGIN`.
-- Add `?zones` to the URL to overlay the zone grid with each cell's direction and frame while tuning.
-- Phones, touch-only devices at phone width, and reduced motion get frame 1 only, with no listeners and no preload.
-- Home hero is full-bleed: `fit: 'cover'` with `focus: { x: 0.5, y: 0 }` (crops sides/bottom, never the top of the head). `.hero__media` holds the static bottom fade mask; `.hero__character` moves with the scroll parallax.
-- Hero text was removed; only a visually hidden `h1` remains in `.hero__inner`, reserved for the bio.
+- Frames: `public/character/webp-main/frame_0001..0300.webp` (800x450). Only 82-279 are used; the pose map and the observed frame ranges are documented at the top of the file.
+- Pointer offset from the face (normalized per side, -1..1) blends centre to left/right on the upper row and down to down-left/down-right on the lower row, with a dead zone and row hysteresis.
+- The displayed frame travels along the real footage to the target (eyes lead, head follows), taking the shorter way round the loop formed by joining centre frames 126 and 279 with a crossfade. Blinks (94-99, 228-234) are never drawn.
+- Tuning at the top of the file: `POSES`, `SKIP_FRAMES`, `LOOP_LINK`, `MAPPING`, `TRACKING`, `MOTION`, `FACE_ORIGIN`.
+- Phones and reduced motion load and show frame 126 only (no listeners, no preload). The render loop stops when the character settles.
+- Source media (MP4, PNG frames, contact sheet, the previous `webp` set) live in gitignored `assets-src/character/`; never put them back in `public/`.
+- Hero copy was removed; a visually hidden `h1` stays in `.hero__inner`, which is reserved for the bio (the frame's left half is empty for it).
 - The home 3D blob is hidden in the hero station so it does not compete with the blob baked into the frames.
 
 ## Content source
