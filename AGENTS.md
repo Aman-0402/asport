@@ -74,6 +74,8 @@ npm run preview   # Serve dist/ locally
 - One `<canvas>`, one frame drawn at a time; frames preloaded as `Image` objects (frame 1 first, direction frames next, rest in the background).
 - All tuning lives at the top of the file: `DIRECTION_FRAMES`, `TRACKING` (dead zone and sensitivity per device class), `MOTION` (smoothing, max step, loop), `FACE_ORIGIN`.
 - Phones, touch-only devices at phone width, and reduced motion get frame 1 only, with no listeners and no preload.
+- Home hero is full-bleed: `fit: 'cover'` with `focus: { x: 0.5, y: 0 }` (crops sides/bottom, never the top of the head). `.hero__media` holds the static bottom fade mask; `.hero__character` moves with the scroll parallax.
+- Hero text was removed; only a visually hidden `h1` remains in `.hero__inner`, reserved for the bio.
 - The home 3D blob is hidden in the hero station so it does not compete with the blob baked into the frames.
 
 ## Content source

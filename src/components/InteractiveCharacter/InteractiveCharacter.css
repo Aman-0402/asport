@@ -53,6 +53,21 @@
   to { opacity: 1; }
 }
 
+/* Full-bleed: fill the parent, no glow or edge feathering (the parent handles blending). */
+.interactive-character--cover {
+  aspect-ratio: auto;
+  height: 100%;
+}
+
+.interactive-character--cover::before {
+  display: none;
+}
+
+.interactive-character--cover .interactive-character__canvas {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .interactive-character__canvas {
     transition: none;

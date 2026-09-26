@@ -241,6 +241,16 @@
   .site-nav.menu-open .site-nav__links a:nth-child(6) { transition-delay: 200ms; }
 }
 
+/* Over the dark hero on the home page, keep nav contrast in the light theme. */
+[data-theme="light"] body[data-page="home"] .site-nav:not(.is-scrolled):not(.menu-open) {
+  --text: oklch(0.955 0.008 50);
+  --text-muted: oklch(0.82 0.014 45);
+  --surface: oklch(0.26 0.017 35);
+  --line: oklch(0.4 0.016 35);
+  --line-strong: oklch(0.5 0.02 35);
+  color: var(--text);
+}
+
 /* ---------- Buttons & links ---------- */
 .btn {
   --btn-bg: transparent;

@@ -34,18 +34,24 @@ export async function init({ env, engine }) {
 
   const characterSlot = document.querySelector('[data-interactive-character]');
   if (characterSlot) {
-    const destroyCharacter = mountInteractiveCharacter(characterSlot, { trackingArea: hero ?? characterSlot });
+    const destroyCharacter = mountInteractiveCharacter(characterSlot, {
+      trackingArea: hero ?? characterSlot,
+      fit: 'cover',
+      // Keep the face in view on narrow screens and never crop the top of the head.
+      focus: { x: 0.5, y: 0 },
+    });
     window.addEventListener('pagehide', (e) => !e.persisted && destroyCharacter(), { once: true });
   }
   const focusList = document.querySelector('.focus__list');
   const focusItems = gsap.utils.toArray('[data-focus-item]');
 
   if (!env.reducedMotion && hero) {
-    gsap.to(hero.querySelector('.hero__inner'), {
-      yPercent: -18,
-      opacity: 0,
+    // Character drifts down and dims as the hero scrolls away (page parallax, not gaze).
+    gsap.to(hero.querySelector('.hero__character'), {
+      yPercent: 18,
+      opacity: 0.25,
       ease: 'none',
-      scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom 15%', scrub: true },
+      scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true },
     });
   }
 

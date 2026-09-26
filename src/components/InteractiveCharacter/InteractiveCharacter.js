@@ -59,7 +59,7 @@ const BREAKPOINTS = { mobile: 767, tablet: 1199 };
 const MOTION = { smoothing: 0.1, maxStep: 5, loop: true };
 
 /** Where the face sits inside the frame (fractions of width/height): the gaze origin. */
-const FACE_ORIGIN = { x: 0.45, y: 0.4 };
+const FACE_ORIGIN = { x: 0.5, y: 0.42 };
 
 /** Frames downloaded in parallel after the first one. */
 const PRELOAD_CONCURRENCY = 6;
@@ -166,13 +166,29 @@ function nearestLoaded(frames, index) {
   return null;
 }
 
-/** Draws one frame to fill the canvas (canvas already has the frame's aspect ratio). */
-export function drawFrame(ctx, frames, index) {
+/**
+ * Where the frame lands on a canvas of `width` x `height` device pixels.
+ * - contain: canvas already matches the frame's aspect ratio, fill it.
+ * - cover: fill the canvas without distortion, cropping around `focus`
+ *   (focus.y = 0 keeps the top edge, so the head and hair are never cut).
+ */
+export function getDrawRect(width, height, fit, focus) {
+  if (fit !== 'cover') return { x: 0, y: 0, w: width, h: height };
+  const scale = Math.max(width / FRAME_WIDTH, height / FRAME_HEIGHT);
+  const w = FRAME_WIDTH * scale;
+  const h = FRAME_HEIGHT * scale;
+  return { x: (width - w) * focus.x, y: (height - h) * focus.y, w, h };
+}
+
+/** Draws one frame into `rect` (device pixels). */
+export function drawFrame(ctx, frames, index, rect) {
   const img = nearestLoaded(frames, index);
   if (!img) return false;
   const { width, height } = ctx.canvas;
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(img, 0, 0, width, height);
+  const r = rect ?? { x: 0, y: 0, w: width, h: height };
+  ctx.fillStyle = '#120f0c';
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(img, r.x, r.y, r.w, r.h);
   return true;
 }
 
@@ -191,18 +207,26 @@ function deviceClass() {
 /**
  * Mounts the character into `container`.
  * @param {HTMLElement} container  element that receives the canvas
- * @param {{ trackingArea?: HTMLElement }} options  element whose pointer
- *   movement drives the gaze (defaults to the container)
+ * @param {object} [options]
+ * @param {HTMLElement} [options.trackingArea]  element whose pointer movement
+ *   drives the gaze (defaults to the container)
+ * @param {'contain'|'cover'} [options.fit]  'contain' keeps the 16:9 box;
+ *   'cover' fills the container (full-bleed hero)
+ * @param {{x: number, y: number}} [options.focus]  crop anchor for 'cover'
+ *   (0..1 per axis; y = 0 never crops the top of the head)
  * @returns {() => void} destroy function
  */
-export function mountInteractiveCharacter(container, { trackingArea = container } = {}) {
+export function mountInteractiveCharacter(
+  container,
+  { trackingArea = container, fit = 'contain', focus = { x: 0.5, y: 0 } } = {}
+) {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const canvas = document.createElement('canvas');
   canvas.className = 'interactive-character__canvas';
   canvas.setAttribute('aria-hidden', 'true');
   canvas.setAttribute('role', 'presentation');
-  container.classList.add('interactive-character');
+  container.classList.add('interactive-character', `interactive-character--${fit}`);
   container.appendChild(canvas);
   const ctx = canvas.getContext('2d', { alpha: false });
 
@@ -215,6 +239,7 @@ export function mountInteractiveCharacter(container, { trackingArea = container 
     currentFrame: getTargetFrame('center'),
     drawnFrame: -1,
   };
+  let rect = { x: 0, y: 0, w: 0, h: 0 };
   const frames = new Array(FRAME_COUNT).fill(null);
   let cancelled = false;
   let rafId = 0;
@@ -224,15 +249,17 @@ export function mountInteractiveCharacter(container, { trackingArea = container 
   /* ---- canvas sizing (devicePixelRatio aware) ---- */
   const resize = () => {
     const cssWidth = container.clientWidth;
+    const cssHeight = fit === 'cover' ? container.clientHeight : (cssWidth * FRAME_HEIGHT) / FRAME_WIDTH;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.round(cssWidth * dpr);
-    const h = Math.round((cssWidth * FRAME_HEIGHT * dpr) / FRAME_WIDTH);
+    const h = Math.round(cssHeight * dpr);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
       ctx.imageSmoothingQuality = 'high';
+      rect = getDrawRect(w, h, fit, focus);
       refs.drawnFrame = -1;
-      drawFrame(ctx, frames, Math.round(refs.currentFrame));
+      drawFrame(ctx, frames, Math.round(refs.currentFrame), rect);
     }
     if (!reducedMotion) tracking = TRACKING[deviceClass()];
     if (tracking.enabled) enableTracking();
@@ -252,8 +279,10 @@ export function mountInteractiveCharacter(container, { trackingArea = container 
     }
     const area = trackingArea.getBoundingClientRect();
     const box = canvas.getBoundingClientRect();
-    const centerX = box.left + box.width * FACE_ORIGIN.x;
-    const centerY = box.top + box.height * FACE_ORIGIN.y;
+    // Face position on screen, following the cover crop when there is one.
+    const px = box.width / canvas.width;
+    const centerX = box.left + (rect.x + rect.w * FACE_ORIGIN.x) * px;
+    const centerY = box.top + (rect.y + rect.h * FACE_ORIGIN.y) * px;
     const radius = Math.min(area.width, area.height);
     const direction = getMouseDirection(refs.mouseX - centerX, refs.mouseY - centerY, radius, tracking);
     refs.targetFrame = getTargetFrame(direction);
@@ -308,7 +337,7 @@ export function mountInteractiveCharacter(container, { trackingArea = container 
     }
 
     const index = Math.round(refs.currentFrame) % FRAME_COUNT;
-    if (index !== refs.drawnFrame && drawFrame(ctx, frames, index)) refs.drawnFrame = index;
+    if (index !== refs.drawnFrame && drawFrame(ctx, frames, index, rect)) refs.drawnFrame = index;
 
     // Keep ticking only while there is somewhere to go; idle costs nothing.
     if (inView && (Math.abs(delta) > 0.01 || refs.drawnFrame !== index)) rafId = requestAnimationFrame(animate);
@@ -328,7 +357,7 @@ export function mountInteractiveCharacter(container, { trackingArea = container 
     if (cancelled || !img) return;
     frames[DIRECTION_FRAMES.center - 1] = img;
     resize();
-    drawFrame(ctx, frames, getTargetFrame('center'));
+    drawFrame(ctx, frames, getTargetFrame('center'), rect);
     refs.drawnFrame = getTargetFrame('center');
     container.classList.add('is-ready');
     if (tracking.enabled) enableTracking();
@@ -347,6 +376,6 @@ export function mountInteractiveCharacter(container, { trackingArea = container 
       frames[i] = null;
     });
     canvas.remove();
-    container.classList.remove('interactive-character', 'is-ready');
+    container.classList.remove('interactive-character', `interactive-character--${fit}`, 'is-ready');
   };
 }
