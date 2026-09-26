@@ -49,6 +49,29 @@ const TRACKING = {
 const BREAKPOINTS = { mobile: 767, tablet: 1199 };
 
 /**
+ * How the pointer picks a pose.
+ * - 'zones': the tracking area is split into a grid; each cell maps to one
+ *   direction in ZONES.map (predictable, easy to tune).
+ * - 'angle': direction from the character's face, with a dead zone (TRACKING).
+ */
+const TRACKING_MODE = 'zones';
+
+/**
+ * Zone grid for TRACKING_MODE 'zones'. `map` is rows (top to bottom) of
+ * columns (left to right); any DIRECTION_FRAMES key works in any cell.
+ * - hysteresis: how far (fraction of the area) the pointer must move past a
+ *   zone border before the pose switches, so it never flickers on a line.
+ * Add `?zones` to the page URL to see the grid while tuning.
+ */
+const ZONES = {
+  map: [
+    ['topLeft', 'center', 'topRight'],
+    ['bottomLeft', 'center', 'bottomRight'],
+  ],
+  hysteresis: 0.03,
+};
+
+/**
  * Motion.
  * - smoothing: fraction of the remaining distance covered each frame (0..1).
  * - maxStep: cap on frames advanced per tick, so long transitions play as
@@ -135,6 +158,26 @@ export function getMouseDirection(dx, dy, radius, { deadZone, sensitivity }) {
   return 'left';
 }
 
+/**
+ * Grid cell under the pointer, in normalized area coordinates (0..1).
+ * Stays in `previous` until the pointer is `ZONES.hysteresis` past its border.
+ */
+export function getZone(nx, ny, previous) {
+  const rows = ZONES.map.length;
+  const cols = ZONES.map[0].length;
+  const clamp = (v, max) => Math.min(max - 1, Math.max(0, v));
+  if (previous) {
+    const m = ZONES.hysteresis;
+    const inside =
+      nx >= previous.col / cols - m && nx <= (previous.col + 1) / cols + m &&
+      ny >= previous.row / rows - m && ny <= (previous.row + 1) / rows + m;
+    if (inside) return previous;
+  }
+  const col = clamp(Math.floor(nx * cols), cols);
+  const row = clamp(Math.floor(ny * rows), rows);
+  return { row, col, direction: ZONES.map[row][col] };
+}
+
 /** Zero-based frame index for a direction key. */
 export function getTargetFrame(direction) {
   return (DIRECTION_FRAMES[direction] ?? DIRECTION_FRAMES.center) - 1;
@@ -193,6 +236,36 @@ export function drawFrame(ctx, frames, index, rect) {
 }
 
 /* ============================================================
+   Tuning overlay
+   ============================================================ */
+
+/** Draws the zone grid with each cell's direction and frame. Dev aid only. */
+function createZoneOverlay(area) {
+  const overlay = document.createElement('div');
+  overlay.className = 'interactive-character__zones';
+  overlay.setAttribute('aria-hidden', 'true');
+  overlay.style.gridTemplateColumns = `repeat(${ZONES.map[0].length}, 1fr)`;
+  overlay.style.gridTemplateRows = `repeat(${ZONES.map.length}, 1fr)`;
+  const cells = [];
+  ZONES.map.forEach((row, r) =>
+    row.forEach((direction, c) => {
+      const cell = document.createElement('span');
+      cell.textContent = `${direction} (${DIRECTION_FRAMES[direction]})`;
+      cell.dataset.cell = `${r}-${c}`;
+      overlay.appendChild(cell);
+      cells.push(cell);
+    })
+  );
+  area.appendChild(overlay);
+  return {
+    highlight(zone) {
+      cells.forEach((cell) => cell.classList.toggle('is-active', !!zone && cell.dataset.cell === `${zone.row}-${zone.col}`));
+    },
+    remove: () => overlay.remove(),
+  };
+}
+
+/* ============================================================
    Mount
    ============================================================ */
 
@@ -238,6 +311,7 @@ export function mountInteractiveCharacter(
     targetFrame: getTargetFrame('center'),
     currentFrame: getTargetFrame('center'),
     drawnFrame: -1,
+    zone: null,
   };
   let rect = { x: 0, y: 0, w: 0, h: 0 };
   const frames = new Array(FRAME_COUNT).fill(null);
@@ -271,13 +345,29 @@ export function mountInteractiveCharacter(
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(container);
 
+  /* ---- optional zone overlay for tuning (?zones in the URL) ---- */
+  const debug =
+    TRACKING_MODE === 'zones' && new URLSearchParams(location.search).has('zones')
+      ? createZoneOverlay(trackingArea)
+      : null;
+
   /* ---- pointer tracking ---- */
   const updateTarget = () => {
     if (!tracking.enabled || !refs.hasPointer) {
       refs.targetFrame = getTargetFrame('center');
+      refs.zone = null;
+      debug?.highlight(null);
       return;
     }
     const area = trackingArea.getBoundingClientRect();
+    if (TRACKING_MODE === 'zones') {
+      const nx = (refs.mouseX - area.left) / area.width;
+      const ny = (refs.mouseY - area.top) / area.height;
+      refs.zone = getZone(nx, ny, refs.zone);
+      refs.targetFrame = getTargetFrame(refs.zone.direction);
+      debug?.highlight(refs.zone);
+      return;
+    }
     const box = canvas.getBoundingClientRect();
     // Face position on screen, following the cover crop when there is one.
     const px = box.width / canvas.width;
@@ -376,6 +466,7 @@ export function mountInteractiveCharacter(
       frames[i] = null;
     });
     canvas.remove();
+    debug?.remove();
     container.classList.remove('interactive-character', `interactive-character--${fit}`, 'is-ready');
   };
 }

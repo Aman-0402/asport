@@ -72,7 +72,8 @@ npm run preview   # Serve dist/ locally
 `src/components/InteractiveCharacter/InteractiveCharacter.js` (+ `.css`), mounted from `src/pages/home.js` into `[data-interactive-character]`.
 
 - One `<canvas>`, one frame drawn at a time; frames preloaded as `Image` objects (frame 1 first, direction frames next, rest in the background).
-- All tuning lives at the top of the file: `DIRECTION_FRAMES`, `TRACKING` (dead zone and sensitivity per device class), `MOTION` (smoothing, max step, loop), `FACE_ORIGIN`.
+- All tuning lives at the top of the file: `DIRECTION_FRAMES`, `TRACKING_MODE` ('zones' default, or 'angle'), `ZONES` (3x2 grid map + hysteresis), `TRACKING` (angle-mode dead zone and sensitivity per device class), `MOTION` (smoothing, max step, loop), `FACE_ORIGIN`.
+- Add `?zones` to the URL to overlay the zone grid with each cell's direction and frame while tuning.
 - Phones, touch-only devices at phone width, and reduced motion get frame 1 only, with no listeners and no preload.
 - Home hero is full-bleed: `fit: 'cover'` with `focus: { x: 0.5, y: 0 }` (crops sides/bottom, never the top of the head). `.hero__media` holds the static bottom fade mask; `.hero__character` moves with the scroll parallax.
 - Hero text was removed; only a visually hidden `h1` remains in `.hero__inner`, reserved for the bio.
