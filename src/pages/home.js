@@ -46,6 +46,15 @@ export async function init({ env, engine }) {
   const focusItems = gsap.utils.toArray('[data-focus-item]');
 
   if (!env.reducedMotion && hero) {
+    // Copy lifts away on wide screens only; on phones it sits below the fold and must stay readable.
+    gsap.matchMedia().add('(min-width: 900px)', () => {
+      gsap.to(hero.querySelector('.hero__content'), {
+        yPercent: -14,
+        opacity: 0,
+        ease: 'none',
+        scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom 20%', scrub: true },
+      });
+    });
     // Character drifts down and dims as the hero scrolls away (page parallax, not gaze).
     gsap.to(hero.querySelector('.hero__character'), {
       yPercent: 18,
