@@ -6,11 +6,13 @@ import './styles/layout.css';
 import './styles/components.css';
 import './styles/pages/home.css';
 import './styles/pages/inner.css';
+import './styles/transitions.css';
 
 import { env } from './core/env.js';
 import { initTheme } from './core/theme.js';
 import { initNav } from './core/nav.js';
 import { initScroll } from './core/scroll.js';
+import { runLoader, initTransitions } from './core/transitions.js';
 import { initYear, initCopyEmail, initRotator, initProjectFilter } from './ui/misc.js';
 import {
   initSplitReveals,
@@ -42,6 +44,22 @@ initYear();
 initCopyEmail();
 initRotator(env.reducedMotion);
 initProjectFilter();
+initTransitions(env);
+
+// 3D starts loading behind the loader; entrance animations wait for it to lift.
+const engine = env.webgl
+  ? import('./three/engine.js')
+      .then(({ startEngine }) => startEngine({ page, env, scroll }))
+      .catch((err) => {
+        console.warn('3D scene disabled:', err);
+        return null;
+      })
+  : Promise.resolve(null);
+
+const loading = document.documentElement.classList.contains('is-loading');
+if (loading) scroll.lock();
+await runLoader(env);
+if (loading) scroll.unlock();
 
 initSplitReveals(env);
 initReveals(env);
@@ -52,15 +70,6 @@ initTilt(env);
 initMarquee(env, scroll);
 
 document.documentElement.classList.add('app-ready');
-
-const engine = env.webgl
-  ? import('./three/engine.js')
-      .then(({ startEngine }) => startEngine({ page, env, scroll }))
-      .catch((err) => {
-        console.warn('3D scene disabled:', err);
-        return null;
-      })
-  : Promise.resolve(null);
 
 pageModules[page]?.()
   .then((mod) => mod.init?.({ env, scroll, engine }))

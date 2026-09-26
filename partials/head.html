@@ -3,7 +3,6 @@
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#1b1614">
 <meta name="author" content="Astha Shukla">
-<meta name="view-transition" content="same-origin">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <script>
   (function () {
@@ -15,6 +14,11 @@
     }
     var root = document.documentElement;
     root.classList.add('js');
+    var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    try {
+      if (!still && !sessionStorage.getItem('astha-visited')) root.classList.add('is-loading');
+      if (!still && sessionStorage.getItem('astha-curtain') === '1') root.classList.add('curtain-in');
+    } catch (e) {}
     setTimeout(function () {
       if (!root.classList.contains('app-ready')) root.classList.add('reveal-fallback');
     }, 3500);

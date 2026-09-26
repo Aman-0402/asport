@@ -1,0 +1,124 @@
+/* ---------- Cross-document view transitions (Chromium) ---------- */
+@view-transition {
+  navigation: auto;
+}
+
+.site-nav {
+  view-transition-name: site-nav;
+}
+
+::view-transition-old(root) {
+  animation: vt-out 380ms var(--ease-in-out) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-in 640ms var(--ease-out) 80ms both;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-3vh) scale(0.985);
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(5vh);
+  }
+}
+
+/* ---------- Curtain fallback for browsers without cross-document transitions ---------- */
+.page-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-transition);
+  background: var(--accent);
+  transform: translateY(100%);
+  pointer-events: none;
+}
+
+.curtain-in .page-curtain {
+  transform: translateY(0);
+}
+
+/* ---------- First-visit loader ---------- */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-transition);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  background: var(--bg);
+}
+
+.is-loading .loader {
+  display: flex;
+}
+
+.loader__name {
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  animation: loader-rise 800ms var(--ease-out) both;
+}
+
+.loader__bar {
+  width: min(220px, 50vw);
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.loader__bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: 0 50%;
+  animation: loader-fill 1600ms var(--ease-in-out) both;
+}
+
+.loader.is-leaving {
+  transition:
+    opacity 600ms var(--ease-out),
+    transform 700ms var(--ease-in-out);
+  opacity: 0;
+  transform: translateY(-4vh);
+  pointer-events: none;
+}
+
+@keyframes loader-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes loader-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.92);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  .loader,
+  .page-curtain {
+    display: none !important;
+  }
+}

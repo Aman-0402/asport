@@ -120,10 +120,10 @@ Status legend: `[ ]` todo, `[x]` done.
 - [x] Contact: pointer-following blob, large email CTA with copy-to-clipboard
 
 ### Phase 5: Transitions and polish
-- [ ] Cross-page transitions (View Transitions API, overlay fallback)
-- [ ] Preloader tied to font + scene readiness (short, skippable)
-- [ ] All interaction states (hover, focus-visible, active) audited
-- [ ] Light theme pass on every page, 3D palette follows theme
+- [x] Cross-page transitions (View Transitions API, overlay fallback)
+- [x] Preloader tied to font + scene readiness (short, skippable)
+- [x] All interaction states (hover, focus-visible, active) audited
+- [x] Light theme pass on every page, 3D palette follows theme
 
 ### Phase 6: SEO, performance, deploy
 - [ ] Meta, Open Graph, JSON-LD, canonical, sitemap.xml, robots.txt, favicon
