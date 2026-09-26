@@ -3,14 +3,46 @@
   position: relative;
   min-height: 100svh;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   padding-top: calc(var(--nav-h) + var(--space-7));
   padding-bottom: clamp(var(--space-7), 8vh, var(--space-9));
 }
 
 .hero__inner {
   display: grid;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.hero__content {
+  display: grid;
   gap: var(--space-5);
+  min-width: 0;
+}
+
+.hero__character {
+  width: min(100%, 560px);
+  justify-self: center;
+}
+
+@media (max-width: 899px) {
+  /* Phones and small tablets: centred character above the intro copy. */
+  .hero__character {
+    order: -1;
+    width: min(100%, 460px);
+  }
+}
+
+@media (min-width: 900px) {
+  .hero__inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-7);
+  }
+
+  .hero__character {
+    width: 100%;
+    justify-self: end;
+  }
 }
 
 .hero__intro {

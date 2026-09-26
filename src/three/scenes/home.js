@@ -24,9 +24,12 @@ export function create(ctx) {
     amp: 0.22,
     freq: 0.75,
     rim: 0.6,
-    opacity: 1,
-    satellite: 1,
+    // Hidden in the hero (the interactive character lives there); stations fade it in.
+    opacity: 0,
+    satellite: 0,
   };
+  hero.uniforms.uOpacity.value = 0;
+  satellite.uniforms.uOpacity.value = 0;
   let synced = false;
   const pos = new THREE.Vector3();
   const baseUpdate = ambient.update;
@@ -62,6 +65,7 @@ export function create(ctx) {
       u.uOpacity.value += (target.opacity - u.uOpacity.value) * k;
       satellite.uniforms.uOpacity.value += (target.satellite - satellite.uniforms.uOpacity.value) * k;
       satellite.mesh.visible = satellite.uniforms.uOpacity.value > 0.02;
+      hero.mesh.visible = u.uOpacity.value > 0.02;
       baseUpdate(state, dt);
     },
   };

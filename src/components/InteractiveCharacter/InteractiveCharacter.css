@@ -1,0 +1,64 @@
+/* InteractiveCharacter: one canvas, frame aspect ratio 16:9 (800x450). */
+
+.interactive-character {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  isolation: isolate;
+}
+
+/* Warm glow behind the frame so its baked-in dark background melts into the hero. */
+.interactive-character::before {
+  content: '';
+  position: absolute;
+  inset: -12% -8%;
+  z-index: -1;
+  background: radial-gradient(closest-side, oklch(0.62 0.16 33 / 0.28), transparent 72%);
+  pointer-events: none;
+}
+
+.interactive-character__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  /* Feather every edge of the rectangular frame. Masking only, no transforms. */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 9%, #000 88%, transparent),
+    linear-gradient(to bottom, transparent, #000 4%, #000 80%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 9%, #000 88%, transparent),
+    linear-gradient(to bottom, transparent, #000 4%, #000 80%, transparent);
+  mask-composite: intersect;
+  transition: opacity 900ms var(--ease-out, ease-out);
+}
+
+.interactive-character.is-ready .interactive-character__canvas {
+  opacity: 1;
+}
+
+/* Subtle placeholder while the first frame decodes. */
+.interactive-character:not(.is-ready)::after {
+  content: '';
+  position: absolute;
+  inset: 20% 30%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, oklch(0.73 0.155 33 / 0.18), transparent);
+  animation: interactive-character-pulse 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes interactive-character-pulse {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive-character__canvas {
+    transition: none;
+  }
+
+  .interactive-character:not(.is-ready)::after {
+    animation: none;
+  }
+}

@@ -67,6 +67,15 @@ npm run preview   # Serve dist/ locally
 - **Contact privacy:** phone number is intentionally hidden. Do not add `tel:` links or phone copy unless the user asks.
 - **SEO:** unique `<title>` and meta description per page, one `h1` per page, JSON-LD `Person` on home, canonical URLs, `sitemap.xml`, `robots.txt`, descriptive alt text.
 
+## Interactive hero character
+
+`src/components/InteractiveCharacter/InteractiveCharacter.js` (+ `.css`), mounted from `src/pages/home.js` into `[data-interactive-character]`.
+
+- One `<canvas>`, one frame drawn at a time; frames preloaded as `Image` objects (frame 1 first, direction frames next, rest in the background).
+- All tuning lives at the top of the file: `DIRECTION_FRAMES`, `TRACKING` (dead zone and sensitivity per device class), `MOTION` (smoothing, max step, loop), `FACE_ORIGIN`.
+- Phones, touch-only devices at phone width, and reduced motion get frame 1 only, with no listeners and no preload.
+- The home 3D blob is hidden in the hero station so it does not compete with the blob baked into the frames.
+
 ## Content source
 
 All copy comes from Astha Shukla's resume/profile (see git history of the original static pages and `profile-readme.md`). Facts to keep exact:

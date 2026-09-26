@@ -7,5 +7,6 @@
 @import './layout.css';
 @import './components.css';
 @import './pages/home.css';
+@import '../components/InteractiveCharacter/InteractiveCharacter.css';
 @import './pages/inner.css';
 @import './transitions.css';

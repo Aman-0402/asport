@@ -1,17 +1,19 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { mountInteractiveCharacter } from '../components/InteractiveCharacter/InteractiveCharacter.js';
 
 /** Blob stations per section: [x, y, z], scale, opacity, satellite opacity. */
 const STATIONS = {
   desktop: {
-    hero: { x: 2.5, y: 0.5, z: -0.5, scale: 1, opacity: 1, satellite: 1 },
+    // Hero belongs to the interactive character; the blob fades in from the intro.
+    hero: { x: 3.4, y: 1.7, z: -3.4, scale: 0.75, opacity: 0, satellite: 0 },
     intro: { x: 3.4, y: 1.7, z: -3.4, scale: 0.75, opacity: 1, satellite: 0 },
     focus: { x: -3.3, y: -1.7, z: -2, scale: 0.62, opacity: 1, satellite: 0 },
     work: { x: 4.2, y: 2.3, z: -6, scale: 0.6, opacity: 0.8, satellite: 0 },
     cert: { x: -4, y: -2.9, z: -3.4, scale: 0.7, opacity: 1, satellite: 1 },
   },
   mobile: {
-    hero: { x: 1.2, y: 2.5, z: -3.5, scale: 1, opacity: 1, satellite: 1 },
+    hero: { x: 1.8, y: 0.4, z: -6, scale: 0.8, opacity: 0, satellite: 0 },
     intro: { x: 1.8, y: 0.4, z: -6, scale: 0.8, opacity: 0.35, satellite: 0 },
     focus: { x: -1.6, y: -1.4, z: -6, scale: 0.8, opacity: 0.3, satellite: 0 },
     work: { x: 1.6, y: 1.2, z: -7, scale: 0.7, opacity: 0.3, satellite: 0 },
@@ -29,6 +31,12 @@ const MORPHS = [
 
 export async function init({ env, engine }) {
   const hero = document.querySelector('[data-hero]');
+
+  const characterSlot = document.querySelector('[data-interactive-character]');
+  if (characterSlot) {
+    const destroyCharacter = mountInteractiveCharacter(characterSlot, { trackingArea: hero ?? characterSlot });
+    window.addEventListener('pagehide', (e) => !e.persisted && destroyCharacter(), { once: true });
+  }
   const focusList = document.querySelector('.focus__list');
   const focusItems = gsap.utils.toArray('[data-focus-item]');
 
@@ -86,7 +94,6 @@ export async function init({ env, engine }) {
   const s = env.mobile ? STATIONS.mobile : STATIONS.desktop;
   api.sync();
   Object.assign(api.target, s.hero);
-  gsap.from(api.target, { scale: 0.7, duration: 2.2, ease: 'expo.out' });
 
   const legs = [
     ['.intro', s.hero, s.intro],
