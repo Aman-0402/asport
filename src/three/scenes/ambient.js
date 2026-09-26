@@ -59,6 +59,8 @@ export function createAmbient({ renderer, env, theme }, config = {}) {
       const t = state.time;
       blobItems.forEach((b) => {
         b.uniforms.uTime.value = t;
+        b.mesh.position.x = b.base.x;
+        b.mesh.position.z = b.base.z;
         b.mesh.position.y = b.base.y + Math.sin(t * 0.6 + b.phase) * b.float;
         b.mesh.rotation.y += dt * spin;
         b.mesh.rotation.x += dt * spin * 0.4;
@@ -84,8 +86,6 @@ export function createAmbient({ renderer, env, theme }, config = {}) {
         const cfg = blobs[i];
         const p = narrow && cfg.mobilePosition ? cfg.mobilePosition : cfg.position;
         b.base.set(...p);
-        b.mesh.position.x = p[0];
-        b.mesh.position.z = p[2];
       });
     },
   };

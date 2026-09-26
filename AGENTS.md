@@ -108,9 +108,9 @@ Status legend: `[ ]` todo, `[x]` done.
 - [x] Shared UI motion: split-text reveals, magnetic buttons, scroll reveals, counters
 
 ### Phase 3: Home page experience
-- [ ] Hero 3D scene: floating coral/mint sculptural forms, pointer parallax, scroll-driven camera dolly
-- [ ] Pinned scroll story sections (who I am, what I work on, featured work teaser)
-- [ ] Horizontal marquee of focus areas, CTA to projects/contact
+- [x] Hero 3D scene: floating coral/mint sculptural forms, pointer parallax, scroll-driven camera dolly
+- [x] Pinned scroll story sections (who I am, what I work on, featured work teaser)
+- [x] Horizontal marquee of focus areas, CTA to projects/contact
 
 ### Phase 4: Inner pages, 3D per page
 - [ ] About: scroll-drawn 3D path through education timeline
