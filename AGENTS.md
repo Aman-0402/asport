@@ -4,69 +4,129 @@ Guidance for AI agents (and humans) working in this repo.
 
 ## Project
 
-Static multi-page portfolio site for Astha Shukla (BBA Marketing student). Plain HTML/CSS/JS — no framework, no build step, no backend.
+Multi-page portfolio for **Astha Shukla** (BBA Marketing student, Allenhouse Business School, Kanpur).
+Being rebuilt from a plain static site into a **3D, scroll-driven, multi-page site**.
 
-Current design direction: modern marketing portfolio with a fixed glass-style navbar, light/dark theme toggle, responsive hero, card-based sections, SVG-style skill/contact icons, and a visible HubSpot certificate.
+- **Audience:** recruiters, internship leads, faculty.
+- **Design read:** cinematic, dark-first portfolio with a warm coral accent carried over from the original brand. 3D objects react to scroll and pointer; content stays readable and fast.
+- **Dials:** variance 8, motion 8, density 3 (design-taste skill scale).
 
-## Structure
+## Stack
+
+| Concern | Choice |
+|---|---|
+| Build | Vite (multi-page app, one HTML entry per page) |
+| 3D | Three.js (single shared WebGL canvas, per-page scene modules) |
+| Scroll animation | GSAP + ScrollTrigger |
+| Smooth scroll | Lenis (driven by GSAP ticker) |
+| Page transitions | Cross-document View Transitions API + GSAP overlay fallback |
+| Fonts | Self-hosted via `@fontsource-variable/*` (no font CDN) |
+| Language | Vanilla ES modules, no UI framework |
+| Deploy | GitHub Pages via GitHub Actions (`dist/`) |
+
+## Commands
+
+```bash
+npm install
+npm run dev       # Vite dev server
+npm run build     # Production build to dist/
+npm run preview   # Serve dist/ locally
+```
+
+## Structure (target)
 
 ```
 /
-├── index.html            Home (hero, typing effect, quick highlights)
-├── about.html            Summary, education, strengths, languages/interests
-├── skills.html           Marketing / Professional / Digital skill cards
-├── projects.html         Academic projects, filterable by category
-├── certifications.html   Certifications, achievements, animated counters
-├── contact.html          Static contact info (mailto:, no form)
-├── styles.css            Single stylesheet, CSS custom properties for theme
-├── main.js               Single vanilla JS file, all interactivity
-├── photo.jpeg            Profile image used across hero/about/contact
-├── Digital Marketing Certified by HubSpot Academy.png
-├── profile-readme.md     Animated GitHub/profile README content
-└── README.md
+├── index.html  about.html  skills.html  projects.html  certifications.html  contact.html
+├── partials/              nav.html, footer.html, head.html (injected at build by vite.config.js)
+├── public/                static assets copied as-is (photo, certificate, favicon, robots.txt, sitemap.xml)
+├── src/
+│   ├── main.js            entry for every page: boots scroll, 3D, transitions, UI, then page module
+│   ├── core/              lenis + gsap setup, theme, nav, reduced-motion + WebGL capability checks
+│   ├── three/             renderer singleton, shared materials/palette, scenes/<page>.js
+│   ├── pages/             per-page scroll choreography (<page>.js), selected by body[data-page]
+│   ├── ui/                reusable behaviors (split text, magnetic buttons, counters, tilt, filter)
+│   └── styles/            tokens.css, base.css, layout.css, components.css, pages/<page>.css
+├── .github/workflows/     deploy.yml (Pages)
+└── web-dev-skills/        reference material only, gitignored, never shipped
 ```
-
-Flat structure by design — no `css/`/`js/` subfolders. Keep new assets at root unless the user asks otherwise.
 
 ## Conventions
 
-- **No inline `<style>` blocks** in HTML — keep new styling in `styles.css`.
-- **No JS frameworks/libraries.** Vanilla JS only, no jQuery, no build tools.
-- **Theme tokens** live in `:root` in `styles.css` (`--color-*`, `--font-*`, `--space-*`, `--shadow-*`). Dark theme overrides live in `[data-theme="dark"]`. Change colors through tokens whenever possible.
-- **Navbar/footer markup is duplicated per page** (no templating engine). When editing nav links, theme toggle markup, or footer text, update all 6 HTML files identically.
-- **Navbar is fixed**, not just sticky. `body` uses `padding-top: var(--navbar-height)` so content clears the header.
-- **Active nav link** is driven by `data-page` attribute on `<body>` matching `data-page` on the matching `<nav>` `<a>` — set in `main.js` (`initActiveNavLink`).
-- **Light/dark theme** is driven by `initThemeToggle` in `main.js`. The user preference is stored in `localStorage` under `astha-theme`.
-- **New page checklist**: copy an existing page's `<head>`, navbar, and footer verbatim; set a unique `data-page` value on `<body>` and add a matching nav link (with the same `data-page`) to all other pages.
-- **Fonts**: Google Fonts CDN (Plus Jakarta Sans for headings, Manrope for body) — loaded per-page in `<head>`.
-- **CSS reset**: `normalize.css` via cdnjs CDN, loaded before `styles.css`.
-- **Skill icons** are CSS mask icons using inline SVG data URIs in `styles.css`. Prefer adding new `icon-*` classes there instead of introducing image files for small UI icons.
-- **Contact privacy**: phone number is intentionally hidden for now. Do not re-add `tel:` or phone copy unless the user explicitly requests it.
+- **Partials:** nav/footer/head markup lives once in `partials/` and is injected with `<!-- @include name -->` via the custom plugin in `vite.config.js`. Never duplicate nav/footer into pages.
+- **Page identity:** `<body data-page="...">` selects the page module in `src/pages/` and the 3D scene in `src/three/scenes/`, and drives the active nav link.
+- **One WebGL canvas** (`#webgl`, fixed, behind content). Scenes are lazy-imported per page so Three.js code for other pages is never loaded.
+- **Styling:** CSS only, no inline `<style>` blocks, no inline `style=""` except values set by JS animation. Tokens in `src/styles/tokens.css` (OKLCH). Dark is default; light theme via `[data-theme="light"]`. Preference stored in `localStorage` key `astha-theme`.
+- **Accent lock:** coral is the only UI accent. Mint appears only as a lighting tint inside 3D scenes.
+- **Radius system:** buttons/tags full-pill, cards and media 14px, nothing larger.
+- **Motion rules:** animate `transform`/`opacity` (and shader uniforms) only. UI transitions under 300ms with `cubic-bezier(0.23, 1, 0.32, 1)`. Scroll-scrubbed motion may be longer.
+- **Reduced motion is mandatory:** `prefers-reduced-motion: reduce` disables Lenis, scrubbed 3D camera moves, and split-text; content must render fully visible with no animation.
+- **No-WebGL fallback:** if WebGL is unavailable, skip Three.js entirely and show the CSS gradient backdrop. No page may depend on the canvas for content.
+- **Performance budget:** device pixel ratio capped at 2 (1.5 on mobile), pause render loop when tab hidden, dispose scene on page leave, target Lighthouse Performance >= 85 on mobile.
+- **Copy rules:** no em dashes or en dashes anywhere (use commas, colons, hyphens). No buzzwords. No invented stats: only numbers from the resume.
+- **Contact privacy:** phone number is intentionally hidden. Do not add `tel:` links or phone copy unless the user asks.
+- **SEO:** unique `<title>` and meta description per page, one `h1` per page, JSON-LD `Person` on home, canonical URLs, `sitemap.xml`, `robots.txt`, descriptive alt text.
 
 ## Content source
 
-All copy (summary, education, skills, projects, achievements, certificate info, contact info) is sourced from Astha Shukla's resume/profile material. If the resume changes, update the corresponding page(s) directly — there is no CMS or data file.
+All copy comes from Astha Shukla's resume/profile (see git history of the original static pages and `profile-readme.md`). Facts to keep exact:
 
-## Running locally
+- BBA Marketing, Allenhouse Business School, Kanpur, 2025 to present
+- Class XII 86%, Class X 80%, K.R. Education Centre
+- Digital Marketing certification, HubSpot Academy
+- Projects: Consumer Preference & Online Shopping Research; Marketing & Business Presentations
+- Email: aasthashuklaastha44@gmail.com, based in Kanpur, Uttar Pradesh
 
-No build step. Open `index.html` directly in a browser, or serve the folder with any static server (e.g. VS Code Live Server) so relative paths resolve consistently.
+## Git workflow
 
-## Interactive features (main.js)
+- Work on `main`, one commit (or small set) per phase, then `git push origin main`.
+- **No `Co-Authored-By` or other attribution trailers in commit messages.**
+- Conventional commit subjects, e.g. `feat(phase-2): three.js engine with scroll-driven camera`.
 
-- Mobile hamburger nav toggle
-- Light/dark theme toggle with persisted preference
-- Active nav link highlighting
-- Scroll-reveal animations (`IntersectionObserver`, `[data-aos]` attributes)
-- Hero typing effect (`.hero-typed`, phrases via `data-phrases` JSON attribute)
-- Animated counters (`.counter-number`, target via `data-target`)
-- Project filter tabs (`.filter-tab` + `.project-card[data-category]`)
+## Phase plan
 
-Each feature guards on the relevant element existing, so `main.js` is safe to include unchanged on every page.
+Status legend: `[ ]` todo, `[x]` done.
 
-## Visual notes
+### Phase 0: Plan and guardrails
+- [x] Audit existing site (6 pages, `styles.css`, `main.js`, assets)
+- [x] Rewrite AGENTS.md with stack, conventions, phase plan
+- [x] Gitignore `web-dev-skills/`, `node_modules/`, `dist/`
 
-- Keep the wider `--container-width: 1400px`, but avoid oversized hero text/images that crowd the first viewport.
-- Cards use `--radius-sm` / `--radius-md`; avoid adding very round nested card layouts.
-- Dark mode needs explicit contrast checks for cards and labels. Add `[data-theme="dark"]` overrides when a light gradient or muted label becomes low contrast.
-- Certificate image should remain visible on `certifications.html`.
-- `profile-readme.md` uses external badge/header SVG services for GitHub-style animation; site pages themselves should stay dependency-light.
+### Phase 1: Vite foundation and design system
+- [ ] `package.json`, Vite MPA config with 6 entries and partial-include plugin
+- [ ] Move assets to `public/` (rename certificate to a URL-safe filename)
+- [ ] New token system (OKLCH, dark default + light), self-hosted fonts, base/layout/components CSS
+- [ ] Shared nav (with mobile menu, theme toggle) and footer as partials
+- [ ] Port all six pages' content into the new markup skeleton (no 3D yet), remove old `styles.css`/`main.js`
+- [ ] Build passes
+
+### Phase 2: Motion and 3D engine
+- [ ] Lenis smooth scroll synced to GSAP ticker + ScrollTrigger
+- [ ] Three.js renderer singleton, resize, DPR cap, visibility pause, dispose
+- [ ] Capability checks: reduced motion, WebGL, low-power heuristics
+- [ ] Scene contract: `create({ renderer, scroll }) -> { update(t), onScroll(p), dispose() }`
+- [ ] Shared UI motion: split-text reveals, magnetic buttons, scroll reveals, counters
+
+### Phase 3: Home page experience
+- [ ] Hero 3D scene: floating coral/mint sculptural forms, pointer parallax, scroll-driven camera dolly
+- [ ] Pinned scroll story sections (who I am, what I work on, featured work teaser)
+- [ ] Horizontal marquee of focus areas, CTA to projects/contact
+
+### Phase 4: Inner pages, 3D per page
+- [ ] About: scroll-drawn 3D path through education timeline
+- [ ] Skills: interactive 3D sphere/orbit of skill labels grouped by category
+- [ ] Projects: pinned horizontal pan with 3D tilt case-study panels and filter
+- [ ] Certifications: 3D certificate plane that turns in on scroll, animated counters
+- [ ] Contact: calm particle field, large email CTA with copy-to-clipboard
+
+### Phase 5: Transitions and polish
+- [ ] Cross-page transitions (View Transitions API, overlay fallback)
+- [ ] Preloader tied to font + scene readiness (short, skippable)
+- [ ] All interaction states (hover, focus-visible, active) audited
+- [ ] Light theme pass on every page, 3D palette follows theme
+
+### Phase 6: SEO, performance, deploy
+- [ ] Meta, Open Graph, JSON-LD, canonical, sitemap.xml, robots.txt, favicon
+- [ ] Image optimization, lazy loading, code-split check
+- [ ] GitHub Actions workflow to deploy `dist/` to GitHub Pages
+- [ ] Final design-taste pre-flight + README update
