@@ -2,9 +2,20 @@
  * InteractiveCharacter
  * --------------------
  * A single canvas that shows one frame of a pre-rendered character at a time.
- * The character watches the visitor's pointer. The pointer position maps to a
- * target frame, and the displayed frame plays toward it through the real
- * footage, so every in-between image is genuine motion (eyes lead, head follows).
+ * The hero is split into a 3x2 grid; each cell owns one pose and its frames:
+ *
+ *   +-----------+-----------+-----------+
+ *   |   LEFT    |  CENTRE   |   RIGHT   |
+ *   |  61-93    |  100-128  |  151-164  |
+ *   +-----------+-----------+-----------+
+ *   | DOWN-LEFT |   DOWN    | DOWN-RIGHT|
+ *   |  197-227  |  180-192  |  167-178  |
+ *   +-----------+-----------+-----------+
+ *
+ * While the pointer stays in a cell, only that cell's frames play, looping
+ * gently back and forth. Moving to another cell always goes via CENTRE: the
+ * playhead returns to the centre pose, then plays the real footage out to the
+ * new pose. Nothing outside the path between centre and a pose is ever shown.
  *
  * Source: public/character/webp-main/frame_0001.webp ... frame_0300.webp
  * (10 s clip, 800x450). Observed sequence, viewer's point of view:
@@ -16,12 +27,9 @@
  *  180-192  DOWN (~186)                    197-227   DOWN-LEFT (~215)
  *  228-234  blink                          235-300   back to CENTRE, settling
  *
- * Frame 300 flows straight into frame 1, so the clip is a seamless loop:
- *   CENTRE - LEFT - CENTRE - RIGHT - DOWN-RIGHT - DOWN - DOWN-LEFT - CENTRE - ...
- * Playback only ever moves FORWARD around that loop (wrapping 300 -> 1), so
- * every transition plays the way it was animated, like one continuous video.
- * It never steps backwards: a target just behind the current frame is held,
- * so small pointer jiggles never trigger a whole lap. Blink frames are never shown.
+ * Every pose sits on one straight stretch of footage (61-227) with centre in
+ * it, so each path from centre to a pose is a plain run of frames. Blink
+ * frames are never shown.
  *
  * Usage:
  *   const destroy = mountInteractiveCharacter(el, { trackingArea: heroEl, fit: 'cover' });
@@ -39,21 +47,34 @@ const frameUrl = (n) => `${import.meta.env.BASE_URL}${FRAME_DIR}/frame_${String(
 const FRAME_WIDTH = 800;
 const FRAME_HEIGHT = 450;
 
-/** Pose frames (1-based), read from the footage (see header). */
-const POSES = {
-  left: 82,
-  center: 126,
-  right: 160,
-  downRight: 172,
-  down: 186,
-  downLeft: 215,
+/**
+ * Pose loops (1-based, inclusive), read from the footage (see header).
+ * `hub` is where every trip between cells starts and ends.
+ */
+const ZONES = {
+  left: [61, 93],
+  center: [100, 128],
+  right: [151, 164],
+  downLeft: [197, 227],
+  down: [180, 192],
+  downRight: [167, 178],
 };
+const HUB = 126;
 
-/** Frames showing the same neutral centre pose; the cheapest one to reach is used. */
-const CENTER_FRAMES = [POSES.center, 290];
+/** Grid, row by row, left to right (matches the header diagram). */
+const GRID = [
+  ['left', 'center', 'right'],
+  ['downLeft', 'down', 'downRight'],
+];
+
+/**
+ * Hysteresis, as a fraction of the cell size: the pointer must cross a cell
+ * border by this much before the zone changes (stops flicker on the lines).
+ */
+const GRID_HYSTERESIS = 0.04;
 
 /** Resting frame on load, on phones, and with reduced motion. */
-const REST_FRAME = 290;
+const REST_FRAME = HUB;
 
 /** Blinks. Never displayed; playback steps over them. */
 const SKIP_FRAMES = [
@@ -63,94 +84,55 @@ const SKIP_FRAMES = [
   [228, 234],
 ];
 
-/**
- * Playback around the loop. The footage only ever plays forward (1 -> 300 -> 1),
- * like a continuous video.
- * - holdBehind: a target this many frames (or fewer) behind the current frame
- *   is treated as reached, so small pointer jitter never triggers a full lap.
- */
-const PLAYBACK = { holdBehind: 12 };
-
-/**
- * Pointer to pose mapping. Offsets are normalized from the character's face:
- * x -1 = hero's left edge, 0 = face, +1 = right edge (same for y).
- * - deadZone: |offset| below this keeps the neutral pose for that axis.
- * - lowerRowAt: y offset where the gaze drops to the "down" poses.
- * - rowHysteresis: extra y travel needed to switch rows (prevents flicker).
- */
-const MAPPING = { deadZone: 0.08, lowerRowAt: 0.3, rowHysteresis: 0.07 };
-
-/** Per device class. `sensitivity` scales pointer offsets (lower = calmer). */
+/** Tracking per device class. Phones show the resting frame only. */
 const TRACKING = {
-  desktop: { enabled: true, sensitivity: 1 },
-  tablet: { enabled: true, sensitivity: 0.6 },
-  mobile: { enabled: false, sensitivity: 0 },
+  desktop: { enabled: true },
+  tablet: { enabled: true },
+  mobile: { enabled: false },
 };
 const BREAKPOINTS = { mobile: 767, tablet: 1199 };
 
 /**
- * Motion along the footage, in frames per display frame (60 Hz):
+ * Speeds in frames per display frame (60 Hz); 0.5 = the clip's real speed.
+ * - travelMax / travelMin: speed limits while moving between centre and a pose.
  * - smoothing: share of the remaining distance used as the desired speed.
  * - accel: how quickly speed approaches that desired speed (eases starts).
- * - minStep / maxStep: speed limits for short moves (0.5 = real time).
- * - lapMaxStep: speed limit for long forward laps (> lapDistance frames).
- * Kept slow so the face turns calmly with the cursor.
+ * - loop: speed of the gentle back-and-forth inside a cell.
  */
-const MOTION = { smoothing: 0.05, accel: 0.1, minStep: 0.15, maxStep: 1.1, lapMaxStep: 2, lapDistance: 60 };
+const MOTION = { travelMax: 1.2, travelMin: 0.25, smoothing: 0.08, accel: 0.12, loop: 0.3 };
 
-/** Face position inside the frame (fractions of width/height): gaze origin and crop anchor. */
+/** Face position inside the frame (fractions of width/height): crop anchor on portrait screens. */
 const FACE_ORIGIN = { x: 0.69, y: 0.33 };
 
 /** Frames downloaded in parallel after the first one. */
 const PRELOAD_CONCURRENCY = 6;
 
 /* ============================================================
-   Loop helpers
+   Helpers
    ============================================================ */
 
-const lerp = (a, b, t) => a + (b - a) * t;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-
-/** Frames from `from` to `to` going forward around the loop (0..FRAME_COUNT). */
-function forwardDistance(from, to) {
-  return (((to - from) % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT;
-}
-
-/** Keeps a loop position in [1, FRAME_COUNT + 1). */
-function wrap(position) {
-  return ((((position - 1) % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT) + 1;
-}
-
-/** Frames to play forward to reach `to`; 0 when `to` is only just behind (hold). */
-function plan(from, to) {
-  if (forwardDistance(to, from) <= PLAYBACK.holdBehind) return 0;
-  return forwardDistance(from, to);
-}
-
-/** The centre frame that is cheapest to reach from `from`. */
-function nearestCenter(from) {
-  let best = CENTER_FRAMES[0];
-  let bestCost = Infinity;
-  for (const c of CENTER_FRAMES) {
-    const cost = Math.abs(plan(from, c));
-    if (cost < bestCost) {
-      best = c;
-      bestCost = cost;
-    }
-  }
-  return best;
-}
 
 function isSkipped(n) {
   return SKIP_FRAMES.some(([lo, hi]) => n >= lo && n <= hi);
 }
 
-/** Frame to show for a loop position; inside a blink, the open-eye frame in the direction of travel. */
+/** Frame to show for a playhead position; inside a blink, the open-eye frame in the direction of travel. */
 function displayFrame(position, direction = 1) {
-  const n = wrap(Math.round(position));
+  const n = clamp(Math.round(position), 1, FRAME_COUNT);
   const blink = SKIP_FRAMES.find(([lo, hi]) => n >= lo && n <= hi);
   if (!blink) return n;
-  return direction >= 0 ? wrap(blink[1] + 1) : wrap(blink[0] - 1);
+  return direction >= 0 ? blink[1] + 1 : blink[0] - 1;
+}
+
+/** First and last frame any path can reach. */
+const PATH_START = Math.min(...Object.values(ZONES).map(([lo]) => lo), HUB);
+const PATH_END = Math.max(...Object.values(ZONES).map(([, hi]) => hi), HUB);
+
+/** Frame of a zone's loop closest to the hub: where a trip out arrives. */
+function entryFrame(zone) {
+  const [lo, hi] = ZONES[zone];
+  return clamp(HUB, lo, hi);
 }
 
 /* ============================================================
@@ -173,16 +155,14 @@ export function loadFrame(n) {
 }
 
 /**
- * Loads the loop progressively without blocking the page: pose frames first,
- * then the rest in playback order from the resting frame. Blinks are skipped.
+ * Loads the frames the paths use, without blocking the page: nearest to the
+ * hub first, so the first trips are ready soonest. Blinks are skipped.
  * `frames[n]` fills as each image arrives; `isCancelled()` stops the queue.
  */
 export function preloadFrames(frames, { isCancelled, onFrame }) {
-  const poses = [...new Set([...Object.values(POSES), ...CENTER_FRAMES])];
-  const rest = [];
-  for (let n = 1; n <= FRAME_COUNT; n++) if (!poses.includes(n) && !isSkipped(n)) rest.push(n);
-  rest.sort((a, b) => forwardDistance(REST_FRAME, a) - forwardDistance(REST_FRAME, b));
-  const queue = [...poses, ...rest].filter((n) => !frames[n]);
+  const queue = [];
+  for (let n = PATH_START; n <= PATH_END; n++) if (!isSkipped(n) && !frames[n]) queue.push(n);
+  queue.sort((a, b) => Math.abs(a - HUB) - Math.abs(b - HUB));
 
   const worker = async () => {
     while (queue.length && !isCancelled()) {
@@ -202,43 +182,32 @@ export function preloadFrames(frames, { isCancelled, onFrame }) {
 }
 
 /* ============================================================
-   Pointer to pose
+   Pointer to zone
    ============================================================ */
 
-/** Dead zone plus ease-out: small offsets move the eyes, large ones turn the head. */
-function shapeAxis(v) {
-  const a = Math.abs(v);
-  if (a <= MAPPING.deadZone) return 0;
-  const t = Math.min(1, (a - MAPPING.deadZone) / (1 - MAPPING.deadZone));
-  return Math.sign(v) * t * (2 - t);
-}
-
 /**
- * Normalized pointer offset from the face, per side of the tracking area,
- * so every edge reaches +-1 regardless of where the face sits.
+ * Grid cell under the pointer, as a zone name. Keeps `previous` until the
+ * pointer is clearly inside another cell.
  */
-export function getMouseDirection(mouseX, mouseY, face, area, sensitivity) {
-  const nx = mouseX < face.x ? (mouseX - face.x) / Math.max(1, face.x - area.left) : (mouseX - face.x) / Math.max(1, area.right - face.x);
-  const ny = mouseY < face.y ? (mouseY - face.y) / Math.max(1, face.y - area.top) : (mouseY - face.y) / Math.max(1, area.bottom - face.y);
-  return { x: clamp(nx * sensitivity, -1, 1), y: clamp(ny * sensitivity, -1, 1) };
-}
+export function getZone(mouseX, mouseY, area, previous = 'center') {
+  const cols = GRID[0].length;
+  const rows = GRID.length;
+  const fx = clamp((mouseX - area.left) / Math.max(1, area.width), 0, 0.9999) * cols;
+  const fy = clamp((mouseY - area.top) / Math.max(1, area.height), 0, 0.9999) * rows;
+  const col = Math.floor(fx);
+  const row = Math.floor(fy);
+  const zone = GRID[row][col];
+  if (zone === previous) return zone;
 
-/**
- * Target frame for a normalized offset. The upper row blends centre toward
- * left or right; the lower row blends down toward down-left or down-right.
- * Returns the chosen row (for hysteresis) and whether the target is centre.
- */
-export function getTargetFrame(offset, previousRow = 'upper') {
-  const split = MAPPING.lowerRowAt;
-  const h = MAPPING.rowHysteresis;
-  const row =
-    previousRow === 'lower' ? (offset.y < split - h ? 'upper' : 'lower') : offset.y > split + h ? 'lower' : 'upper';
-  const s = shapeAxis(offset.x);
-  const frame =
-    row === 'upper'
-      ? s < 0 ? lerp(POSES.center, POSES.left, -s) : lerp(POSES.center, POSES.right, s)
-      : s < 0 ? lerp(POSES.down, POSES.downLeft, -s) : lerp(POSES.down, POSES.downRight, s);
-  return { frame, row, isCenter: row === 'upper' && s === 0 };
+  // Only switch once the pointer is past the border by the hysteresis margin.
+  const prev = GRID.flat().indexOf(previous);
+  if (prev < 0) return zone;
+  const pc = prev % cols;
+  const pr = Math.floor(prev / cols);
+  const m = GRID_HYSTERESIS;
+  const outX = fx < pc - m || fx > pc + 1 + m;
+  const outY = fy < pr - m || fy > pr + 1 + m;
+  return outX || outY ? zone : previous;
 }
 
 /* ============================================================
@@ -249,9 +218,9 @@ export function getTargetFrame(offset, previousRow = 'upper') {
 function nearestLoaded(frames, n) {
   if (frames[n]) return frames[n];
   for (let o = 1; o < FRAME_COUNT; o++) {
-    const back = frames[wrap(n - o)];
+    const back = frames[n - o];
     if (back) return back;
-    const ahead = frames[wrap(n + o)];
+    const ahead = frames[n + o];
     if (ahead) return ahead;
   }
   return null;
@@ -332,9 +301,8 @@ export function mountInteractiveCharacter(
     mouseX: 0,
     mouseY: 0,
     hasPointer: false,
-    row: 'upper',
-    wantsCenter: true,
-    targetFrame: REST_FRAME,
+    target: 'center', // zone under the pointer
+    leg: 'center', // zone whose path the playhead is on
     currentFrame: REST_FRAME,
     speed: 0,
     direction: 1,
@@ -346,6 +314,7 @@ export function mountInteractiveCharacter(
   let rafId = 0;
   let inView = true;
   let tracking = reducedMotion ? TRACKING.mobile : TRACKING[deviceClass()];
+  const animated = () => tracking.enabled && !reducedMotion;
 
   const shownFrame = () => displayFrame(refs.currentFrame, refs.direction);
 
@@ -375,25 +344,10 @@ export function mountInteractiveCharacter(
 
   /* ---- pointer tracking ---- */
   function updateTarget() {
-    if (!tracking.enabled || !refs.hasPointer) {
-      refs.row = 'upper';
-      refs.wantsCenter = true;
-      start();
-      return;
-    }
-    const area = trackingArea.getBoundingClientRect();
-    const box = canvas.getBoundingClientRect();
-    // Face position on screen, following the cover crop.
-    const px = box.width / canvas.width;
-    const face = {
-      x: box.left + (rect.x + rect.w * FACE_ORIGIN.x) * px,
-      y: box.top + (rect.y + rect.h * FACE_ORIGIN.y) * px,
-    };
-    const offset = getMouseDirection(refs.mouseX, refs.mouseY, face, area, tracking.sensitivity);
-    const { frame, row, isCenter } = getTargetFrame(offset, refs.row);
-    refs.row = row;
-    refs.wantsCenter = isCenter;
-    if (!isCenter) refs.targetFrame = frame;
+    refs.target =
+      tracking.enabled && refs.hasPointer
+        ? getZone(refs.mouseX, refs.mouseY, trackingArea.getBoundingClientRect(), refs.target)
+        : 'center';
     start();
   }
 
@@ -416,6 +370,7 @@ export function mountInteractiveCharacter(
     trackingStarted = true;
     trackingArea.addEventListener('pointermove', onPointerMove, { passive: true });
     trackingArea.addEventListener('pointerleave', onPointerLeave);
+    start();
     preloadFrames(frames, {
       isCancelled: () => cancelled,
       onFrame: (n) => {
@@ -428,32 +383,54 @@ export function mountInteractiveCharacter(
     });
   }
 
-  /* ---- render loop: plays the footage forward around the loop toward the target ---- */
+  /* ---- render loop: travel via the hub, then loop inside the target zone ---- */
   function animate() {
     rafId = 0;
-    // A centre target picks whichever centre frame is now cheapest to reach.
-    if (refs.wantsCenter) refs.targetFrame = nearestCenter(refs.currentFrame);
-    const delta = plan(refs.currentFrame, refs.targetFrame);
-    const distance = Math.abs(delta);
-    const moving = distance > 0.02;
-
-    if (moving) {
-      const limit = distance > MOTION.lapDistance ? MOTION.lapMaxStep : MOTION.maxStep;
-      const desired = clamp(distance * MOTION.smoothing, MOTION.minStep, limit);
-      refs.speed += (desired - refs.speed) * MOTION.accel;
-      refs.direction = 1;
-      refs.currentFrame = wrap(refs.currentFrame + Math.min(distance, refs.speed));
+    let goal;
+    if (!animated()) {
+      goal = REST_FRAME;
+    } else if (refs.leg !== refs.target) {
+      // Wrong path: head back to the centre hub first.
+      goal = HUB;
     } else {
-      // Arrived (or holding just past the target): never step backwards.
-      refs.currentFrame = wrap(refs.currentFrame + delta);
-      refs.speed = 0;
+      const [lo, hi] = ZONES[refs.leg];
+      goal = refs.currentFrame < lo || refs.currentFrame > hi ? entryFrame(refs.leg) : null;
+    }
+
+    if (goal === null) {
+      // Inside the zone: gentle back-and-forth over its frames only.
+      const [lo, hi] = ZONES[refs.leg];
+      refs.speed = MOTION.loop;
+      let next = refs.currentFrame + refs.direction * refs.speed;
+      if (next >= hi) {
+        next = hi;
+        refs.direction = -1;
+      } else if (next <= lo) {
+        next = lo;
+        refs.direction = 1;
+      }
+      refs.currentFrame = next;
+    } else {
+      const delta = goal - refs.currentFrame;
+      const distance = Math.abs(delta);
+      if (distance > 0.02) {
+        const desired = clamp(distance * MOTION.smoothing, MOTION.travelMin, MOTION.travelMax);
+        refs.speed += (desired - refs.speed) * MOTION.accel;
+        refs.direction = Math.sign(delta);
+        refs.currentFrame += refs.direction * Math.min(distance, refs.speed);
+      } else {
+        refs.currentFrame = goal;
+        // At the hub, switch onto the target's path.
+        if (goal === HUB && refs.leg !== refs.target) refs.leg = refs.target;
+      }
     }
 
     const n = shownFrame();
     if (n !== refs.drawnFrame && drawFrame(ctx, frames, n, rect)) refs.drawnFrame = n;
 
-    // Keep ticking only while moving; a settled character costs nothing.
-    if (inView && (moving || refs.drawnFrame !== n)) rafId = requestAnimationFrame(animate);
+    // Keeps looping while tracking; the resting frame (phones, reduced motion) costs nothing.
+    const settled = !animated() && refs.currentFrame === REST_FRAME && refs.drawnFrame === n;
+    if (inView && !settled) rafId = requestAnimationFrame(animate);
   }
   function start() {
     if (!rafId && inView && !cancelled) rafId = requestAnimationFrame(animate);

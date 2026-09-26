@@ -71,11 +71,11 @@ npm run preview   # Serve dist/ locally
 
 `src/components/InteractiveCharacter/InteractiveCharacter.js` (+ `.css`), mounted from `src/pages/home.js` into `[data-interactive-character]` (full-bleed, `fit: 'cover'`, `focus: { x: 'face', y: 0 }`).
 
-- Frames: `public/character/webp-main/frame_0001..0300.webp` (800x450). Frame 300 flows into frame 1, so the clip is a seamless loop; the pose map and observed frame ranges are documented at the top of the file.
-- Pointer offset from the face (normalized per side, -1..1) blends centre to left/right on the upper row and down to down-left/down-right on the lower row, with a dead zone and row hysteresis.
-- Playback only moves FORWARD around the loop toward the target (1 -> 300 -> 1, never reverse); a target up to `PLAYBACK.holdBehind` frames behind is held instead. Speed is kept slow (`MOTION`) so the face turns calmly. Centre targets use whichever of frames 126/290 is cheapest to reach. Blinks (10-20, 30-36, 94-99, 228-234) are never drawn.
-- Tuning at the top of the file: `POSES`, `CENTER_FRAMES`, `REST_FRAME`, `SKIP_FRAMES`, `PLAYBACK`, `MAPPING`, `TRACKING`, `MOTION`, `FACE_ORIGIN`.
-- Phones and reduced motion load and show frame 290 only (no listeners, no preload). The render loop stops when the character settles.
+- Frames: `public/character/webp-main/frame_0001..0300.webp` (800x450); the observed frame ranges are documented at the top of the file.
+- The hero is a 3x2 grid (`GRID`). Top: left 61-93 / centre 100-128 / right 151-164. Bottom: down-left 197-227 / down 180-192 / down-right 167-178 (`ZONES`). While the pointer stays in a cell, only that cell's frames loop back and forth.
+- Changing cells always goes via centre: the playhead returns to the hub frame 126, then plays the footage out to the new pose. All poses sit on one run of footage (61-227), so a trip may pass through the poses in between. Blinks (94-99 on the left path) are never drawn. Pointer leaving the hero returns to centre.
+- Tuning at the top of the file: `ZONES`, `HUB`, `GRID`, `GRID_HYSTERESIS`, `REST_FRAME`, `SKIP_FRAMES`, `TRACKING`, `MOTION`, `FACE_ORIGIN`.
+- Phones and reduced motion load and show frame 126 only (no listeners, no preload, no render loop). Only frames 61-227 are preloaded on desktop/tablet.
 - Source media (MP4, PNG frames, contact sheet, the previous `webp` set) live in gitignored `assets-src/character/`; never put them back in `public/`.
 - Hero copy (intro, name `h1`, tagline, rotator, CTAs, highlights) sits in `.hero__content` over the empty dark left half of the frame. Below 900px the character stacks above the copy instead of behind it.
 - The home 3D blob is hidden in the hero station so it does not compete with the blob baked into the frames.
