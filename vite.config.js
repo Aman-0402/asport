@@ -35,6 +35,8 @@ export default defineConfig({
   plugins: [htmlPartials()],
   build: {
     target: 'es2022',
+    // three.js core lands in one lazy chunk (~130 kB gzip); only loaded when WebGL is available.
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       input: Object.fromEntries(pages.map((p) => [p, resolve(root, `${p}.html`)])),
     },

@@ -101,11 +101,11 @@ Status legend: `[ ]` todo, `[x]` done.
 - [x] Build passes
 
 ### Phase 2: Motion and 3D engine
-- [ ] Lenis smooth scroll synced to GSAP ticker + ScrollTrigger
-- [ ] Three.js renderer singleton, resize, DPR cap, visibility pause, dispose
-- [ ] Capability checks: reduced motion, WebGL, low-power heuristics
-- [ ] Scene contract: `create({ renderer, scroll }) -> { update(t), onScroll(p), dispose() }`
-- [ ] Shared UI motion: split-text reveals, magnetic buttons, scroll reveals, counters
+- [x] Lenis smooth scroll synced to GSAP ticker + ScrollTrigger
+- [x] Three.js renderer singleton, resize, DPR cap, visibility pause, dispose
+- [x] Capability checks: reduced motion, WebGL, low-power heuristics
+- [x] Scene contract: `create({ renderer, scroll }) -> { update(t), onScroll(p), dispose() }`
+- [x] Shared UI motion: split-text reveals, magnetic buttons, scroll reveals, counters
 
 ### Phase 3: Home page experience
 - [ ] Hero 3D scene: floating coral/mint sculptural forms, pointer parallax, scroll-driven camera dolly

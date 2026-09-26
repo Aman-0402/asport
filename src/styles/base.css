@@ -154,6 +154,11 @@ button {
     radial-gradient(50vmax 45vmax at 5% 90%, var(--backdrop-b), transparent 70%);
 }
 
+.scroll-locked,
+.scroll-locked body {
+  overflow: hidden;
+}
+
 main,
 .site-footer {
   position: relative;

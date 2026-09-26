@@ -338,10 +338,11 @@
 
 /* ---------- Split text ---------- */
 .split-line {
-  display: block;
+  display: inline-block;
   overflow: clip;
-  padding-bottom: 0.08em;
-  margin-bottom: -0.08em;
+  vertical-align: top;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
 }
 
 .split-word,
@@ -406,6 +407,23 @@
   content: '+';
   color: var(--accent);
   font-weight: 400;
+}
+
+.marquee.is-static {
+  mask-image: none;
+}
+
+.marquee.is-static .marquee__track {
+  flex-wrap: wrap;
+  width: auto;
+  padding-inline: var(--gutter);
+  gap: var(--space-3) var(--space-6);
+  font-size: var(--step-2);
+  white-space: normal;
+}
+
+.marquee.is-static .marquee__track li {
+  gap: var(--space-6);
 }
 
 /* ---------- Footer ---------- */

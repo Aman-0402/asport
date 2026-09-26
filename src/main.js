@@ -7,32 +7,61 @@ import './styles/components.css';
 import './styles/pages/home.css';
 import './styles/pages/inner.css';
 
+import { env } from './core/env.js';
 import { initTheme } from './core/theme.js';
 import { initNav } from './core/nav.js';
+import { initScroll } from './core/scroll.js';
 import { initYear, initCopyEmail, initRotator, initProjectFilter } from './ui/misc.js';
+import {
+  initSplitReveals,
+  initReveals,
+  initScrubWords,
+  initCounters,
+  initMagnetic,
+  initTilt,
+  initMarquee,
+} from './ui/motion.js';
 
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pageModules = {
+  home: () => import('./pages/home.js'),
+  about: () => import('./pages/about.js'),
+  skills: () => import('./pages/skills.js'),
+  projects: () => import('./pages/projects.js'),
+  certifications: () => import('./pages/certifications.js'),
+  contact: () => import('./pages/contact.js'),
+};
+
+const page = document.body.dataset.page;
 
 initTheme();
-const nav = initNav();
+const scroll = initScroll(env);
+const nav = initNav({ lockScroll: scroll.lock, unlockScroll: scroll.unlock });
+scroll.subscribe(({ y }) => nav.onScroll(y));
+
 initYear();
 initCopyEmail();
-initRotator(reducedMotion);
+initRotator(env.reducedMotion);
 initProjectFilter();
 
-window.addEventListener('scroll', () => nav.onScroll(window.scrollY), { passive: true });
+initSplitReveals(env);
+initReveals(env);
+initScrubWords(env);
+initCounters(env);
+initMagnetic(env);
+initTilt(env);
+initMarquee(env, scroll);
 
-// Basic reveal until the motion engine lands.
-document.querySelectorAll('[data-split]').forEach((el) => el.classList.add('is-split'));
-const io = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add('is-in');
-      io.unobserve(entry.target);
-    });
-  },
-  { rootMargin: '0px 0px -10% 0px' }
-);
-document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
 document.documentElement.classList.add('app-ready');
+
+const engine = env.webgl
+  ? import('./three/engine.js')
+      .then(({ startEngine }) => startEngine({ page, env, scroll }))
+      .catch((err) => {
+        console.warn('3D scene disabled:', err);
+        return null;
+      })
+  : Promise.resolve(null);
+
+pageModules[page]?.()
+  .then((mod) => mod.init?.({ env, scroll, engine }))
+  .catch((err) => console.warn(`Page module "${page}" failed:`, err));

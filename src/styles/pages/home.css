@@ -102,11 +102,6 @@
   max-width: 30ch;
 }
 
-.statement .scrub-word {
-  opacity: var(--word-o, 1);
-  transition: opacity 120ms linear;
-}
-
 .intro__facts {
   margin-top: var(--space-6);
   max-width: 52ch;
