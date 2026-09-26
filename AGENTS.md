@@ -72,9 +72,9 @@ npm run preview   # Serve dist/ locally
 `src/components/InteractiveCharacter/InteractiveCharacter.js` (+ `.css`), mounted from `src/pages/home.js` into `[data-interactive-character]` (full-bleed, `fit: 'cover'`, `focus: { x: 'face', y: 0 }`).
 
 - Frames: `public/character/webp-main/frame_0001..0300.webp` (800x450); the observed frame ranges are documented at the top of the file.
-- The hero is a 3x2 grid (`GRID`). Top: left 61-93 / centre 100-128 / right 151-164. Bottom: down-left 197-227 / down 180-192 / down-right 167-178 (`ZONES`). While the pointer stays in a cell, only that cell's frames loop back and forth.
-- Changing cells always goes via centre: the playhead returns to the hub frame 126, then plays the footage out to the new pose. All poses sit on one run of footage (61-227), so a trip may pass through the poses in between. Blinks (94-99 on the left path) are never drawn. Pointer leaving the hero returns to centre.
-- Tuning at the top of the file: `ZONES`, `HUB`, `GRID`, `GRID_HYSTERESIS`, `REST_FRAME`, `SKIP_FRAMES`, `TRACKING`, `MOTION`, `FACE_ORIGIN`.
+- The hero is a 3x2 grid (`GRID`). Top: left 61-93 / centre 100-128 / right 151-164. Bottom: down-left 197-227 / down 180-192 / down-right 167-178 (`ZONES`). Entering a cell plays into its pose frame (`POSE`: 82 / 126 / 160 / 215 / 186 / 172) and holds still there.
+- Changing cells always goes via centre: the playhead returns to the hub frame 126, then plays the footage out to the new pose. One move plays at most `MAX_TRAVEL` (24) frames; longer trips jump near the goal and cross-fade in, so she never sweeps through other poses. Blinks (94-99 on the left path) are never drawn. Pointer leaving the hero returns to centre.
+- Tuning at the top of the file: `ZONES`, `HUB`, `POSE`, `MAX_TRAVEL`, `GRID`, `GRID_HYSTERESIS`, `REST_FRAME`, `SKIP_FRAMES`, `TRACKING`, `MOTION`, `FACE_ORIGIN`.
 - Phones and reduced motion load and show frame 126 only (no listeners, no preload, no render loop). Only frames 61-227 are preloaded on desktop/tablet.
 - Source media (MP4, PNG frames, contact sheet, the previous `webp` set) live in gitignored `assets-src/character/`; never put them back in `public/`.
 - Hero copy (intro, name `h1`, tagline, rotator, CTAs, highlights) sits in `.hero__content` over the empty dark left half of the frame. Below 900px the character stacks above the copy instead of behind it.

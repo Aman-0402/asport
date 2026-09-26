@@ -12,10 +12,11 @@
  *   |  197-227  |  180-192  |  167-178  |
  *   +-----------+-----------+-----------+
  *
- * While the pointer stays in a cell, only that cell's frames play, looping
- * gently back and forth. Moving to another cell always goes via CENTRE: the
- * playhead returns to the centre pose, then plays the real footage out to the
- * new pose. Nothing outside the path between centre and a pose is ever shown.
+ * Entering a cell plays the footage into that cell's pose and holds still on
+ * it (`POSE`). Moving to another cell always goes via CENTRE: back to the
+ * centre pose, then out to the new pose. One move plays at most MAX_TRAVEL
+ * frames; a longer trip jumps close to the goal and cross-fades in, so she
+ * never sweeps through the other poses on the way.
  *
  * Source: public/character/webp-main/frame_0001.webp ... frame_0300.webp
  * (10 s clip, 800x450). Observed sequence, viewer's point of view:
@@ -61,6 +62,16 @@ const ZONES = {
 };
 const HUB = 126;
 
+/** Frame each zone settles and holds on (its clearest pose). */
+const POSE = { left: 82, center: HUB, right: 160, downLeft: 215, down: 186, downRight: 172 };
+
+/**
+ * Longest run of footage one move plays. A longer trip jumps to this many
+ * frames before the goal and cross-fades in, so a move never sweeps through
+ * other poses on the way.
+ */
+const MAX_TRAVEL = 24;
+
 /** Grid, row by row, left to right (matches the header diagram). */
 const GRID = [
   ['left', 'center', 'right'],
@@ -94,12 +105,12 @@ const BREAKPOINTS = { mobile: 767, tablet: 1199 };
 
 /**
  * Speeds in frames per display frame (60 Hz); 0.5 = the clip's real speed.
- * - travelMax / travelMin: speed limits while moving between centre and a pose.
+ * - travelMax / travelMin: speed limits while moving between poses.
  * - smoothing: share of the remaining distance used as the desired speed.
  * - accel: how quickly speed approaches that desired speed (eases starts).
- * - loop: speed of the gentle back-and-forth inside a cell.
+ * - fadeTicks / fadeAlpha: length and strength of the cross-fade after a jump.
  */
-const MOTION = { travelMax: 1.2, travelMin: 0.25, smoothing: 0.08, accel: 0.12, loop: 0.3 };
+const MOTION = { travelMax: 1.6, travelMin: 0.35, smoothing: 0.12, accel: 0.3, fadeTicks: 8, fadeAlpha: 0.3 };
 
 /** Face position inside the frame (fractions of width/height): crop anchor on portrait screens. */
 const FACE_ORIGIN = { x: 0.69, y: 0.33 };
@@ -128,12 +139,6 @@ function displayFrame(position, direction = 1) {
 /** First and last frame any path can reach. */
 const PATH_START = Math.min(...Object.values(ZONES).map(([lo]) => lo), HUB);
 const PATH_END = Math.max(...Object.values(ZONES).map(([, hi]) => hi), HUB);
-
-/** Frame of a zone's loop closest to the hub: where a trip out arrives. */
-function entryFrame(zone) {
-  const [lo, hi] = ZONES[zone];
-  return clamp(HUB, lo, hi);
-}
 
 /* ============================================================
    Frame loading
@@ -249,9 +254,16 @@ export function getDrawRect(width, height, fit, focus) {
 }
 
 /** Draws frame `n` into `rect` (device pixels). */
-export function drawFrame(ctx, frames, n, rect) {
+export function drawFrame(ctx, frames, n, rect, alpha = 1) {
   const img = nearestLoaded(frames, n);
   if (!img) return false;
+  if (alpha < 1) {
+    // Blend over what is on screen (cross-fade after a jump).
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h);
+    ctx.globalAlpha = 1;
+    return true;
+  }
   const { width, height } = ctx.canvas;
   ctx.fillStyle = '#120f0c';
   ctx.fillRect(0, 0, width, height);
@@ -304,6 +316,8 @@ export function mountInteractiveCharacter(
     target: 'center', // zone under the pointer
     leg: 'center', // zone whose path the playhead is on
     currentFrame: REST_FRAME,
+    goal: REST_FRAME,
+    fade: 0,
     speed: 0,
     direction: 1,
     drawnFrame: -1,
@@ -383,53 +397,54 @@ export function mountInteractiveCharacter(
     });
   }
 
-  /* ---- render loop: travel via the hub, then loop inside the target zone ---- */
+  /* ---- render loop: travel via the centre hub, then hold on the target pose ---- */
   function animate() {
     rafId = 0;
-    let goal;
-    if (!animated()) {
-      goal = REST_FRAME;
-    } else if (refs.leg !== refs.target) {
-      // Wrong path: head back to the centre hub first.
-      goal = HUB;
-    } else {
-      const [lo, hi] = ZONES[refs.leg];
-      goal = refs.currentFrame < lo || refs.currentFrame > hi ? entryFrame(refs.leg) : null;
+    let goal = REST_FRAME;
+    if (animated()) goal = refs.leg !== refs.target ? HUB : POSE[refs.leg];
+
+    // New goal far away: jump close to it and cross-fade instead of sweeping.
+    if (goal !== refs.goal) {
+      refs.goal = goal;
+      const delta = goal - refs.currentFrame;
+      if (Math.abs(delta) > MAX_TRAVEL) {
+        refs.currentFrame = goal - Math.sign(delta) * MAX_TRAVEL;
+        refs.speed = 0;
+        refs.fade = MOTION.fadeTicks;
+      }
     }
 
-    if (goal === null) {
-      // Inside the zone: gentle back-and-forth over its frames only.
-      const [lo, hi] = ZONES[refs.leg];
-      refs.speed = MOTION.loop;
-      let next = refs.currentFrame + refs.direction * refs.speed;
-      if (next >= hi) {
-        next = hi;
-        refs.direction = -1;
-      } else if (next <= lo) {
-        next = lo;
-        refs.direction = 1;
-      }
-      refs.currentFrame = next;
+    const delta = goal - refs.currentFrame;
+    const distance = Math.abs(delta);
+    let moving = distance > 0.02;
+    if (moving) {
+      // Pass through the hub at full speed; ease out only on the final pose.
+      const passing = goal === HUB && refs.leg !== refs.target;
+      const desired = passing ? MOTION.travelMax : clamp(distance * MOTION.smoothing, MOTION.travelMin, MOTION.travelMax);
+      refs.speed += (desired - refs.speed) * MOTION.accel;
+      refs.direction = Math.sign(delta);
+      refs.currentFrame += refs.direction * Math.min(distance, refs.speed);
     } else {
-      const delta = goal - refs.currentFrame;
-      const distance = Math.abs(delta);
-      if (distance > 0.02) {
-        const desired = clamp(distance * MOTION.smoothing, MOTION.travelMin, MOTION.travelMax);
-        refs.speed += (desired - refs.speed) * MOTION.accel;
-        refs.direction = Math.sign(delta);
-        refs.currentFrame += refs.direction * Math.min(distance, refs.speed);
-      } else {
-        refs.currentFrame = goal;
-        // At the hub, switch onto the target's path.
-        if (goal === HUB && refs.leg !== refs.target) refs.leg = refs.target;
+      refs.currentFrame = goal;
+      refs.speed = 0;
+      // At the hub, switch onto the target's path (keeps ticking to set off).
+      if (goal === HUB && refs.leg !== refs.target) {
+        refs.leg = refs.target;
+        moving = true;
       }
     }
 
     const n = shownFrame();
-    if (n !== refs.drawnFrame && drawFrame(ctx, frames, n, rect)) refs.drawnFrame = n;
+    if (refs.fade > 0) {
+      refs.fade -= 1;
+      const alpha = refs.fade > 0 ? MOTION.fadeAlpha : 1;
+      if (drawFrame(ctx, frames, n, rect, alpha)) refs.drawnFrame = refs.fade > 0 ? -1 : n;
+    } else if (n !== refs.drawnFrame && drawFrame(ctx, frames, n, rect)) {
+      refs.drawnFrame = n;
+    }
 
-    // Keeps looping while tracking; the resting frame (phones, reduced motion) costs nothing.
-    const settled = !animated() && refs.currentFrame === REST_FRAME && refs.drawnFrame === n;
+    // Stops once holding a pose: a settled character costs nothing.
+    const settled = !moving && refs.fade <= 0 && refs.drawnFrame === n && refs.leg === refs.target;
     if (inView && !settled) rafId = requestAnimationFrame(animate);
   }
   function start() {
