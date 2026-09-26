@@ -19,9 +19,9 @@
  * Frame 300 flows straight into frame 1, so the clip is a seamless loop:
  *   CENTRE - LEFT - CENTRE - RIGHT - DOWN-RIGHT - DOWN - DOWN-LEFT - CENTRE - ...
  * Playback only ever moves FORWARD around that loop (wrapping 300 -> 1), so
- * every transition plays the way it was animated. Only tiny corrections (a few
- * frames) may step backwards, which stops small pointer jiggles from
- * triggering a whole lap. Blink frames are never shown.
+ * every transition plays the way it was animated, like one continuous video.
+ * It never steps backwards: a target just behind the current frame is held,
+ * so small pointer jiggles never trigger a whole lap. Blink frames are never shown.
  *
  * Usage:
  *   const destroy = mountInteractiveCharacter(el, { trackingArea: heroEl, fit: 'cover' });
@@ -64,11 +64,12 @@ const SKIP_FRAMES = [
 ];
 
 /**
- * Playback around the loop.
- * - backtrackMax: largest backwards step allowed, in frames. Anything further
- *   is reached by playing forward around the loop.
+ * Playback around the loop. The footage only ever plays forward (1 -> 300 -> 1),
+ * like a continuous video.
+ * - holdBehind: a target this many frames (or fewer) behind the current frame
+ *   is treated as reached, so small pointer jitter never triggers a full lap.
  */
-const PLAYBACK = { backtrackMax: 12 };
+const PLAYBACK = { holdBehind: 12 };
 
 /**
  * Pointer to pose mapping. Offsets are normalized from the character's face:
@@ -91,11 +92,11 @@ const BREAKPOINTS = { mobile: 767, tablet: 1199 };
  * Motion along the footage, in frames per display frame (60 Hz):
  * - smoothing: share of the remaining distance used as the desired speed.
  * - accel: how quickly speed approaches that desired speed (eases starts).
- * - minStep / maxStep: speed limits for short moves (~2 = 4x real time).
- * - lapMaxStep: speed limit for long forward laps (> lapDistance frames), so
- *   a full lap stays around a second instead of dragging.
+ * - minStep / maxStep: speed limits for short moves (0.5 = real time).
+ * - lapMaxStep: speed limit for long forward laps (> lapDistance frames).
+ * Kept slow so the face turns calmly with the cursor.
  */
-const MOTION = { smoothing: 0.08, accel: 0.18, minStep: 0.2, maxStep: 2.2, lapMaxStep: 4.5, lapDistance: 60 };
+const MOTION = { smoothing: 0.05, accel: 0.1, minStep: 0.15, maxStep: 1.1, lapMaxStep: 2, lapDistance: 60 };
 
 /** Face position inside the frame (fractions of width/height): gaze origin and crop anchor. */
 const FACE_ORIGIN = { x: 0.69, y: 0.33 };
@@ -120,10 +121,9 @@ function wrap(position) {
   return ((((position - 1) % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT) + 1;
 }
 
-/** Signed distance to travel: a short step back when tiny, otherwise forward. */
+/** Frames to play forward to reach `to`; 0 when `to` is only just behind (hold). */
 function plan(from, to) {
-  const back = forwardDistance(to, from);
-  if (back > 0 && back <= PLAYBACK.backtrackMax) return -back;
+  if (forwardDistance(to, from) <= PLAYBACK.holdBehind) return 0;
   return forwardDistance(from, to);
 }
 
@@ -441,10 +441,11 @@ export function mountInteractiveCharacter(
       const limit = distance > MOTION.lapDistance ? MOTION.lapMaxStep : MOTION.maxStep;
       const desired = clamp(distance * MOTION.smoothing, MOTION.minStep, limit);
       refs.speed += (desired - refs.speed) * MOTION.accel;
-      refs.direction = Math.sign(delta);
-      refs.currentFrame = wrap(refs.currentFrame + refs.direction * Math.min(distance, refs.speed));
+      refs.direction = 1;
+      refs.currentFrame = wrap(refs.currentFrame + Math.min(distance, refs.speed));
     } else {
-      refs.currentFrame = refs.targetFrame;
+      // Arrived (or holding just past the target): never step backwards.
+      refs.currentFrame = wrap(refs.currentFrame + delta);
       refs.speed = 0;
     }
 

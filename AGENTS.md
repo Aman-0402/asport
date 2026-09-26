@@ -73,7 +73,7 @@ npm run preview   # Serve dist/ locally
 
 - Frames: `public/character/webp-main/frame_0001..0300.webp` (800x450). Frame 300 flows into frame 1, so the clip is a seamless loop; the pose map and observed frame ranges are documented at the top of the file.
 - Pointer offset from the face (normalized per side, -1..1) blends centre to left/right on the upper row and down to down-left/down-right on the lower row, with a dead zone and row hysteresis.
-- Playback only moves FORWARD around the loop toward the target (no reverse playback); only tiny corrections up to `PLAYBACK.backtrackMax` frames step back. Centre targets use whichever of frames 126/290 is cheapest to reach. Blinks (10-20, 30-36, 94-99, 228-234) are never drawn.
+- Playback only moves FORWARD around the loop toward the target (1 -> 300 -> 1, never reverse); a target up to `PLAYBACK.holdBehind` frames behind is held instead. Speed is kept slow (`MOTION`) so the face turns calmly. Centre targets use whichever of frames 126/290 is cheapest to reach. Blinks (10-20, 30-36, 94-99, 228-234) are never drawn.
 - Tuning at the top of the file: `POSES`, `CENTER_FRAMES`, `REST_FRAME`, `SKIP_FRAMES`, `PLAYBACK`, `MAPPING`, `TRACKING`, `MOTION`, `FACE_ORIGIN`.
 - Phones and reduced motion load and show frame 290 only (no listeners, no preload). The render loop stops when the character settles.
 - Source media (MP4, PNG frames, contact sheet, the previous `webp` set) live in gitignored `assets-src/character/`; never put them back in `public/`.
